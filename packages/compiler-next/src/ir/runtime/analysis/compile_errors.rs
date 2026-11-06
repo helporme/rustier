@@ -452,9 +452,8 @@ mod tests {
                 ("macro_rules! bad { () => { missing } } bad!()", "E0425"),
                 ("__rustier_env.missing()", "E0599"),
                 ("fn helper() { let _: bool = 3; } helper()", "E0308"),
-                ("42u64", "E0308"),
                 ("\"borrowed\"", "E0308"),
-                ("(1, 2)", "E0308"),
+                ("&(1, 2)", "E0308"),
             ] {
                 let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
                 let errors = macro_.check_compile_errors(&db).as_ref().expect(body);
@@ -470,6 +469,8 @@ mod tests {
                 "()",
                 "true",
                 "42",
+                "42u64",
+                "(1, 2)",
                 "let unused = 1; ()",
                 "__rustier_env.null()",
             ] {
@@ -584,7 +585,7 @@ mod tests {
         ra_ap_hir::attach_db(&db, || assert!(program.check(&db).is_empty()));
 
         let body = vec![RsPart::Text("dep::value()".into())];
-        let initial = template(&mut db, "pub fn value() -> u64 { 42 }");
+        let initial = template(&mut db, "pub fn value() -> &'static str { \"borrowed\" }");
         RuntimeAnalysis::set(&mut db, initial);
         ra_ap_hir::attach_db(&db, || {
             assert!(!RsMacro::new(&db, body.clone()).is_compilable(&db))

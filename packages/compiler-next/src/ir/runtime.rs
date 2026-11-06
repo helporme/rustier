@@ -45,6 +45,22 @@ impl<'db> Runtime<'db> {
         macros.sort_by(|left, right| left.symbol(db).cmp(right.symbol(db)));
         macros
     }
+
+    pub fn uses_rust_handles(self, db: &'db dyn Db) -> bool {
+        self.macros(db)
+            .into_iter()
+            .any(|macro_| matches!(macro_.ret_type(db), RsType::RustHandle { .. }))
+    }
+
+    pub fn handle_drop_transport(self, db: &'db dyn Db) -> TransportFunction<'db> {
+        TransportFunction::new(
+            db,
+            "__rustier_drop_handle",
+            vec![TransportTypeRs::Usize],
+            TransportTypeRs::Void,
+            false,
+        )
+    }
 }
 
 /// The `rs` macro.
@@ -137,6 +153,14 @@ pub enum RsType {
     F64,
     Void,
     JsValue,
+    RustHandle { borrow: HandleBorrow },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum HandleBorrow {
+    Owned,
+    Shared,
+    Mutable,
 }
 
 /// A js-side runtime type.
@@ -147,16 +171,18 @@ pub enum JsType {
     Number,
     Undefined,
     Any,
+    RustHandle,
 }
 
 impl RsType {
     /// Chooses the Rust transport representation needed to carry this runtime type.
-    pub fn transport(self) -> TransportTypeRs {
+    pub fn transport(&self) -> TransportTypeRs {
         match self {
             Self::String => TransportTypeRs::String,
             Self::Bool => TransportTypeRs::Bool,
             Self::Void => TransportTypeRs::Void,
             Self::JsValue => TransportTypeRs::JsValueHandle,
+            Self::RustHandle { .. } => TransportTypeRs::Usize,
             Self::I8
             | Self::I16
             | Self::I32
@@ -169,12 +195,13 @@ impl RsType {
     }
 
     /// Maps this runtime type to its JS-facing representation.
-    pub fn js(self) -> JsType {
+    pub fn js(&self) -> JsType {
         match self {
             Self::String => JsType::String,
             Self::Bool => JsType::Boolean,
             Self::Void => JsType::Undefined,
             Self::JsValue => JsType::Any,
+            Self::RustHandle { .. } => JsType::RustHandle,
             Self::I8
             | Self::I16
             | Self::I32

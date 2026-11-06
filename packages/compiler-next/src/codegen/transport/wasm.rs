@@ -99,6 +99,9 @@ impl TransportBackendWasm {
                     TransportTypeRs::F64 => {
                         frag!(, ~__rustier_raw_{index}: f64).apply(p);
                     }
+                    TransportTypeRs::Usize => {
+                        frag!(, ~__rustier_raw_{index}: usize).apply(p);
+                    }
                     TransportTypeRs::JsValueHandle | TransportTypeRs::String => {
                         frag!(, ~__rustier_raw_{index}: u32).apply(p);
                     }
@@ -119,7 +122,7 @@ impl TransportBackendWasm {
                     TransportTypeRs::Void => {
                         frag!(let __rustier_handle_{index} = ();@).apply(p);
                     }
-                    TransportTypeRs::F64 | TransportTypeRs::Bool => {
+                    TransportTypeRs::F64 | TransportTypeRs::Bool | TransportTypeRs::Usize => {
                         frag!(let __rustier_handle_{index} = __rustier_raw_{index};@).apply(p);
                     }
                     TransportTypeRs::JsValueHandle => {
@@ -140,13 +143,16 @@ impl TransportBackendWasm {
                 "__rustier_env_handle.new_string(&__rustier_output).into_raw()"
             }
             TransportTypeRs::Void => "()",
-            TransportTypeRs::F64 | TransportTypeRs::Bool => "__rustier_output",
+            TransportTypeRs::F64 | TransportTypeRs::Bool | TransportTypeRs::Usize => {
+                "__rustier_output"
+            }
             TransportTypeRs::JsValueHandle => "__rustier_output.into_raw()",
         };
         let ret = match function.ret_type(db) {
             TransportTypeRs::Bool => "bool",
             TransportTypeRs::Void => "()",
             TransportTypeRs::F64 => "f64",
+            TransportTypeRs::Usize => "usize",
             TransportTypeRs::JsValueHandle | TransportTypeRs::String => "u32",
         };
         let unwrap = function.can_return_error(db).then(|| {
@@ -190,7 +196,10 @@ impl TransportBackendWasm {
         let inputs = fragment(|p| {
             for (type_, argument) in function.inputs(db).iter().zip(arguments) {
                 match type_ {
-                    TransportTypeRs::Void | TransportTypeRs::F64 | TransportTypeRs::Bool => {}
+                    TransportTypeRs::Void
+                    | TransportTypeRs::F64
+                    | TransportTypeRs::Bool
+                    | TransportTypeRs::Usize => {}
                     TransportTypeRs::JsValueHandle | TransportTypeRs::String => {
                         frag!(handles.push(__rustier_values.__rustier_js_insert({argument}));@)
                             .apply(p);
@@ -202,6 +211,13 @@ impl TransportBackendWasm {
             TransportTypeJs::Boolean => frag!(Boolean(result)).apply(p),
             TransportTypeJs::Undefined => frag!(undefined).apply(p),
             TransportTypeJs::Number => frag!(result).apply(p),
+            TransportTypeJs::BigInt => {
+                if self.mem64 {
+                    frag!(BigInt.asUintN(64, result)).apply(p);
+                } else {
+                    frag!(BigInt(result >>> 0)).apply(p);
+                }
+            }
             TransportTypeJs::Any | TransportTypeJs::String => {
                 frag!(__rustier_values.__rustier_js_take(result)).apply(p)
             }
@@ -212,6 +228,13 @@ impl TransportBackendWasm {
                 match type_ {
                     TransportTypeRs::Void => {}
                     TransportTypeRs::F64 | TransportTypeRs::Bool => frag!(, ~{argument}).apply(p),
+                    TransportTypeRs::Usize => {
+                        if self.mem64 {
+                            frag!(, ~{argument}).apply(p);
+                        } else {
+                            frag!(, Number({argument})).apply(p);
+                        }
+                    }
                     TransportTypeRs::JsValueHandle | TransportTypeRs::String => {
                         frag!(, ~handles[{handle_index}]).apply(p);
                         handle_index += 1;

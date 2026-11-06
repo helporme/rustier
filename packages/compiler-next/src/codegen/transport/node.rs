@@ -107,6 +107,17 @@ impl TransportBackendNode {
                     TransportTypeRs::Void => frag!(
                         let __rustier_handle_{index} = ();@
                     ).apply(p),
+                    TransportTypeRs::Usize => frag!(
+                        let mut raw: u64 = 0;@
+                        let mut lossless = false;@
+                        let status = unsafe {{
+                            __rustier_napi::napi_get_value_bigint_uint64(env, __rustier_args[{index}], &mut raw, &mut lossless)
+                        }};@
+                        if status != __rustier_napi::Status::napi_ok || !lossless {{
+                            panic!("Expected a lossless unsigned pointer-sized integer");@
+                        }}@
+                        let __rustier_handle_{index} = usize::try_from(raw).expect("Integer exceeds usize");@
+                    ).apply(p),
                     TransportTypeRs::F64 => frag!(
                         let mut __rustier_handle_{index}: f64 = 0.0;@
                         let status = unsafe {{
@@ -124,7 +135,8 @@ impl TransportBackendNode {
                 }
             }
         });
-        let output = fragment(|p| match function.ret_type(db) {
+        let output = fragment(|p| {
+            match function.ret_type(db) {
             TransportTypeRs::String => frag!(unsafe {
                 {
                     __rustier_env_handle
@@ -147,6 +159,18 @@ impl TransportBackendNode {
             )
             .apply(p),
             TransportTypeRs::Void => frag!(undefined).apply(p),
+            TransportTypeRs::Usize => frag!(
+                {{
+                    let mut value = ::std::ptr::null_mut();@
+                    let status = unsafe {{
+                        __rustier_napi::napi_create_bigint_uint64(env, __rustier_output as u64, &mut value)
+                    }};@
+                    if status != __rustier_napi::Status::napi_ok {{
+                        panic!("Could not create a JavaScript bigint");@
+                    }}@
+                    value
+                }}
+            ).apply(p),
             TransportTypeRs::F64 => frag!(
                 {{
                     let mut value = ::std::ptr::null_mut();@
@@ -164,6 +188,7 @@ impl TransportBackendNode {
                 { __rustier_output.into_napi_value() as __rustier_napi::napi_value }
             })
             .apply(p),
+        }
         });
         frag!(
             unsafe extern "C" fn ~{name}(

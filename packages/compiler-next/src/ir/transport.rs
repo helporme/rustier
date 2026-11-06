@@ -17,6 +17,7 @@ pub enum TransportTypeRs {
     String,
     Bool,
     F64,
+    Usize,
     Void,
     JsValueHandle,
 }
@@ -39,6 +40,7 @@ pub enum TransportTypeJs {
     String,
     Boolean,
     Number,
+    BigInt,
     Undefined,
     Any,
 }
@@ -50,6 +52,7 @@ impl TransportTypeRs {
             Self::String => TransportTypeJs::String,
             Self::Bool => TransportTypeJs::Boolean,
             Self::F64 => TransportTypeJs::Number,
+            Self::Usize => TransportTypeJs::BigInt,
             Self::Void => TransportTypeJs::Undefined,
             Self::JsValueHandle => TransportTypeJs::Any,
         }

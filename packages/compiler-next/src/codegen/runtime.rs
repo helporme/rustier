@@ -8,7 +8,7 @@ use crate::{
         },
     },
     db::Db,
-    ir::runtime::{JsType, RsMacro, RsPart, RsType, Runtime},
+    ir::runtime::{HandleBorrow, JsType, RsMacro, RsPart, RsType, Runtime},
 };
 
 impl<'db> Runtime<'db> {
@@ -21,6 +21,10 @@ impl<'db> Runtime<'db> {
     ) -> String {
         fragment(|p| {
             render_transport_preamble_js(backend, bin_file_path).apply(p);
+            if self.uses_rust_handles(db) {
+                self.render_runtime_handles_preamble_js(db, backend)
+                    .apply(p);
+            }
             for macro_ in self
                 .macros(db)
                 .into_iter()
@@ -36,6 +40,10 @@ impl<'db> Runtime<'db> {
     pub fn render_rs_ffi(self, db: &'db dyn Db, backend: &TransportBackend) -> String {
         fragment(|p| {
             render_transport_preamble_rs(backend).apply(p);
+            if self.uses_rust_handles(db) {
+                self.render_runtime_handles_preamble_rs(db, backend)
+                    .apply(p);
+            }
             for macro_ in self
                 .macros(db)
                 .into_iter()
@@ -49,11 +57,54 @@ impl<'db> Runtime<'db> {
                 self.macros(db)
                     .into_iter()
                     .filter(|macro_| macro_.is_compilable(db))
-                    .map(|macro_| macro_.transport(db)),
+                    .map(|macro_| macro_.transport(db))
+                    .chain(
+                        self.uses_rust_handles(db)
+                            .then(|| self.handle_drop_transport(db)),
+                    ),
             )
             .apply(p);
         })
         .print()
+    }
+
+    fn render_runtime_handles_preamble_js(
+        self,
+        db: &'db dyn Db,
+        backend: &TransportBackend,
+    ) -> impl FragmentOnce {
+        let call = self.handle_drop_transport(db).render_js_ffi_call_stmt(
+            db,
+            backend,
+            &["pointer".into()],
+            "__rustier_drop_result",
+        );
+
+        frag!(
+            function __rustier_drop_handle(pointer) {{
+                let __rustier_drop_result;@
+                {call}
+            }}@
+            {include_str!("runtime/handles.mjs")}@
+        )
+    }
+
+    fn render_runtime_handles_preamble_rs(
+        self,
+        db: &'db dyn Db,
+        backend: &TransportBackend,
+    ) -> String {
+        self.handle_drop_transport(db)
+            .render_rs_adapter_with_body(db, backend, |_, arguments| {
+                let pointer = &arguments[0];
+
+                frag!(unsafe {
+                    {
+                        ::aux_next::runtime::rust_handles::RustHandle::drop_raw({ pointer });
+                    }
+                })
+                .print()
+            })
     }
 }
 
@@ -72,14 +123,24 @@ impl RsType {
             Self::U32 => frag!(u32),
             Self::F32 => frag!(f32),
             Self::F64 => frag!(f64),
+            Self::RustHandle {
+                borrow: HandleBorrow::Owned,
+            } => frag!(_),
+            Self::RustHandle {
+                borrow: HandleBorrow::Shared,
+            } => frag!(&_),
+            Self::RustHandle {
+                borrow: HandleBorrow::Mutable,
+            } => frag!(&mut _),
         }
     }
 
-    fn render_from_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
+    fn render_from_transport(&self, value: impl FragmentOnce) -> impl FragmentOnce {
         fragment(move |p| match self {
             Self::Void | Self::Bool | Self::String => value.apply(p),
             Self::JsValue => frag!(::aux_next::runtime::js::JsValue::from({ value })).apply(p),
             Self::F64 => value.apply(p),
+            Self::RustHandle { .. } => unreachable!(),
             Self::F32 => frag!(({ value }).clamp(f32::MIN as f64, f32::MAX as f64) as f32).apply(p),
             Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 => {
                 let target = self.render();
@@ -88,11 +149,15 @@ impl RsType {
         })
     }
 
-    fn render_to_transport(self, value: impl FragmentOnce) -> impl FragmentOnce {
+    fn render_to_transport(&self, value: impl FragmentOnce) -> impl FragmentOnce {
         fragment(move |p| match self {
             Self::Void | Self::Bool | Self::String => value.apply(p),
             Self::JsValue => frag!(::aux_next::transport::JsValueHandle::from({ value })).apply(p),
             Self::F64 => value.apply(p),
+            Self::RustHandle { .. } => {
+                frag!(::aux_next::runtime::rust_handles::RustHandle::new({ value }).into_raw())
+                    .apply(p);
+            }
             Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 | Self::F32 => {
                 frag!(({ value }) as f64).apply(p)
             }
@@ -116,7 +181,7 @@ impl<'db> RsMacro<'db> {
         self.transport(db)
             .render_rs_adapter_with_body(db, backend, |env, arguments| {
                 let ret_type = fragment(|p| {
-                    if self.can_return_error(db) {
+                    if self.returns_result(db) {
                         self.render_result_type(db).apply(p);
                     } else {
                         self.ret_type(db).render().apply(p);
@@ -126,6 +191,29 @@ impl<'db> RsMacro<'db> {
                     for (index, (type_, argument)) in
                         self.inputs(db).iter().zip(arguments).enumerate()
                     {
+                        if let RsType::RustHandle { borrow } = type_ {
+                            let method = match borrow {
+                                HandleBorrow::Owned => "take",
+                                HandleBorrow::Shared => "borrow",
+                                HandleBorrow::Mutable => "borrow_mut",
+                            };
+                            let value = match borrow {
+                                HandleBorrow::Owned => frag!(__rustier_guard_{index}),
+                                HandleBorrow::Shared => frag!(&*__rustier_guard_{index}),
+                                HandleBorrow::Mutable => frag!(&mut *__rustier_guard_{index}),
+                            };
+
+                            frag!(
+                                let __rustier_owned_{index} = unsafe {{
+                                    ::aux_next::runtime::rust_handles::RustHandle::clone_from_raw({argument})
+                                }};@
+                                let mut __rustier_guard_{index} = __rustier_owned_{index}.{method}::<_>()
+                                    .map_err(|error| ::aux_next::transport::TransportError::Dynamic(error.to_string()))?;@
+                                let __rustier_arg_{index} = {value};@
+                            ).apply(p);
+                            continue;
+                        }
+
                         let value = type_.render_from_transport(argument);
                         frag!(let __rustier_arg_{index} = {value};@).apply(p);
                     }
@@ -142,11 +230,10 @@ impl<'db> RsMacro<'db> {
                         }
                     }
                 });
-                let output = self
-                    .ret_type(db)
-                    .render_to_transport(frag!(__rustier_output));
+                let ret = self.ret_type(db);
+                let output = ret.render_to_transport(frag!(__rustier_output));
                 let output = fragment(|p| {
-                    if self.can_return_error(db) {
+                    if self.returns_result(db) {
                         frag!(
                             __rustier_output
                                 .map(|__rustier_output| {output})
@@ -155,18 +242,27 @@ impl<'db> RsMacro<'db> {
                                     ::aux_next::transport::TransportError::Dynamic(error.to_string())
                                 }})
                         ).apply(p);
+                    } else if self.can_return_error(db) {
+                        frag!(Ok({output})).apply(p);
                     } else {
                         output.apply(p);
                     }
                 });
 
-                frag!(
+                let body = frag!(
                     let __rustier_env = ::aux_next::runtime::js::JsEnv::from({env});@
                     {conversions}@
                     let __rustier_output = {"(|| -> "}{ret_type}{" {\n"}{body}{"\n})();"}@
                     {output}
-                )
-                .print()
+                ).print();
+
+                if self.inputs(db).iter().any(|ty| matches!(ty, RsType::RustHandle { .. })) {
+                    frag!((|| -> ::std::result::Result<_, ::aux_next::transport::TransportError> {{
+                        {body}
+                    }})()).print()
+                } else {
+                    body
+                }
             })
     }
 
@@ -183,6 +279,18 @@ impl<'db> RsMacro<'db> {
         let checks = fragment(|p| {
             for (index, (type_, argument)) in self.inputs(db).iter().zip(&arguments).enumerate() {
                 let expected = match type_.js() {
+                    JsType::RustHandle => {
+                        let message =
+                            doubles(frag!({"Rustier input "}{index}{": expected Rust handle"}));
+
+                        frag!(
+                            if (!__rustier_is_handle({argument})) {{
+                                throw new TypeError({message});@
+                            }}@
+                        )
+                        .apply(p);
+                        continue;
+                    }
                     JsType::String => "string",
                     JsType::Boolean => "boolean",
                     JsType::Number => "number",
@@ -207,6 +315,7 @@ impl<'db> RsMacro<'db> {
             .zip(&arguments)
             .map(|(type_, argument)| match type_.js() {
                 JsType::Undefined => "undefined".into(),
+                JsType::RustHandle => frag!(__rustier_handle_pointer({ argument })).print(),
                 JsType::Any | JsType::Number | JsType::Boolean | JsType::String => argument.clone(),
             })
             .collect();
@@ -230,8 +339,11 @@ impl<'db> RsMacro<'db> {
             }
         });
         let result = match self.ret_type(db).js() {
-            JsType::Undefined => "undefined",
-            JsType::Any | JsType::Number | JsType::Boolean | JsType::String => result_var,
+            JsType::Undefined => "undefined".to_owned(),
+            JsType::RustHandle => frag!(new Rs({result_var}, __rustier_handle_key)).print(),
+            JsType::Any | JsType::Number | JsType::Boolean | JsType::String => {
+                result_var.to_owned()
+            }
         };
 
         frag!(

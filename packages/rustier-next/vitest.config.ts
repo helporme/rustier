@@ -1,10 +1,15 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vitest/config'
 import rustier, { type RustierProfile } from 'rustier-next/rolldown'
 
+const crates = {
+  'handy-crate': { path: fileURLToPath(new URL('./tests/handy-crate', import.meta.url)) },
+}
+
 const profiles = {
-  node: { platform: { type: 'node' } },
-  wasm32: { platform: { type: 'wasm', loading: 'node-js', mem64: false } },
-  wasm64: { platform: { type: 'wasm', loading: 'node-js', mem64: true } },
+  node: { platform: { type: 'node' }, crates },
+  wasm32: { platform: { type: 'wasm', loading: 'node-js', mem64: false }, crates },
+  wasm64: { platform: { type: 'wasm', loading: 'node-js', mem64: true }, crates },
 } satisfies Record<string, RustierProfile>
 
 let activeProfile = 'node'

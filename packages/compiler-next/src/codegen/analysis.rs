@@ -81,7 +81,7 @@ impl<'db> RsMacro<'db> {
         types: Option<&[RsType]>,
         output: Option<RsType>,
     ) -> AnalysisSource {
-        let fallible_check = output.is_some() && self.can_return_error(db);
+        let fallible_check = output.is_some() && self.returns_result(db);
         let text = fragment(|p| {
             for (index, output) in std::iter::once(None).chain(output.map(Some)).enumerate() {
                 if index == 0 && fallible_check {
@@ -115,7 +115,7 @@ impl<'db> RsMacro<'db> {
                 let output = output.map(|ty| {
                     fragment(move |p| {
                         frag!(~-> ~).apply(p);
-                        if self.can_return_error(db) {
+                        if self.returns_result(db) {
                             self.render_result_type(db).apply(p);
                         } else {
                             ty.render().apply(p);
@@ -138,18 +138,21 @@ impl<'db> RsMacro<'db> {
                 frag!(@{"};"}@).apply(p);
 
                 if fallible_check {
-                    let inputs = fragment(|p| {
-                        for ty in types.unwrap() {
-                            frag!({ty.render()},).apply(p);
+                    let generics = fragment(|p| {
+                        for index in 0..types.unwrap().len() {
+                            frag!(A{index},).apply(p);
                         }
                     });
-                    let value = self.ret_type(db).render();
-
+                    let inputs = fragment(|p| {
+                        for index in 0..types.unwrap().len() {
+                            frag!(A{index},).apply(p);
+                        }
+                    });
                     frag!(
-                        fn __rustier_check_error<E, F>(_: F)
+                        fn __rustier_check_error<T, E, F, {generics}>(_: F)
                         where
                             E: Into<::std::boxed::Box<dyn ::std::error::Error + Send + Sync + 'static>>,
-                            F: FnOnce({inputs}) -> ::std::result::Result<{value}, E>
+                            F: FnOnce({inputs}) -> ::std::result::Result<T, E>
                         {{}}@
                         __rustier_check_error(__rustier_snippet);@
                     ).apply(p);

@@ -10,12 +10,12 @@ use ra_ap_hir_def::{
 };
 use ra_ap_hir_ty::{
     InferenceResult,
-    next_solver::{DbInterner, FnSig, Ty, TyKind},
+    next_solver::{DbInterner, FnSig, GenericArgKind, Ty, TyKind},
 };
 use ra_ap_syntax::{AstNode, ast, ast::HasName};
 use salsa::Setter;
 
-use super::{RsMacro, RsPart, RsType};
+use super::{HandleBorrow, RsMacro, RsPart, RsType};
 use crate::db::{Db, VirtFile};
 
 mod compile_errors;
@@ -93,12 +93,19 @@ impl<'db> RsMacro<'db> {
         infer_closure(db, file).map_or(RsType::JsValue, |(callable, _)| {
             let output = callable.output();
 
-            match result_types(db, output) {
+            let type_ = match result_types(db, output) {
                 Some((value, _)) if matches!(value.inner().internee, TyKind::Error(_)) => {
                     RsType::Void
                 }
                 Some((value, _)) => classify_type(db, value),
                 None => classify_type(db, output),
+            };
+
+            match type_ {
+                RsType::RustHandle {
+                    borrow: HandleBorrow::Shared | HandleBorrow::Mutable,
+                } => RsType::JsValue,
+                _ => type_,
             }
         })
     }
@@ -106,6 +113,15 @@ impl<'db> RsMacro<'db> {
     /// Whether the macro can return an error.
     #[salsa::tracked]
     pub fn can_return_error(self, db: &'db dyn Db) -> bool {
+        self.returns_result(db)
+            || self
+                .inputs(db)
+                .iter()
+                .any(|ty| matches!(ty, RsType::RustHandle { .. }))
+    }
+
+    #[salsa::tracked]
+    pub(crate) fn returns_result(self, db: &'db dyn Db) -> bool {
         let file = self.analysis_file_for_output(db);
 
         infer_closure(db, file).is_some_and(|(callable, has_try)| {
@@ -244,6 +260,21 @@ fn result_types<'db>(db: &'db dyn Db, ty: Ty<'db>) -> Option<(Ty<'db>, Ty<'db>)>
 }
 
 fn classify_type(db: &dyn Db, ty: Ty<'_>) -> RsType {
+    if let Some((inner, _, mutability)) = ty.as_reference() {
+        return match classify_type(db, inner) {
+            RsType::RustHandle {
+                borrow: HandleBorrow::Owned,
+            } => RsType::RustHandle {
+                borrow: if mutability.is_mut() {
+                    HandleBorrow::Mutable
+                } else {
+                    HandleBorrow::Shared
+                },
+            },
+            _ => RsType::JsValue,
+        };
+    }
+
     if ty.is_unit() {
         RsType::Void
     } else if ty.as_adt().is_some_and(|(adt, _)| {
@@ -273,8 +304,51 @@ fn classify_type(db: &dyn Db, ty: Ty<'_>) -> RsType {
             Some(BuiltinType::Uint(BuiltinUint::U32)) => RsType::U32,
             Some(BuiltinType::Float(BuiltinFloat::F32)) => RsType::F32,
             Some(BuiltinType::Float(BuiltinFloat::F64)) => RsType::F64,
-            _ => RsType::JsValue,
+            _ => classify_owned_handle(db, ty),
         }
+    }
+}
+
+fn classify_owned_handle(db: &dyn Db, ty: Ty<'_>) -> RsType {
+    if ty.references_non_lt_error()
+        || ty
+            .walk()
+            .any(|arg| matches!(arg.kind(), GenericArgKind::Lifetime(_)))
+        || matches!(
+            ty.inner().internee,
+            TyKind::Never | TyKind::Str | TyKind::Slice(_)
+        )
+    {
+        return RsType::JsValue;
+    }
+
+    if ty.as_adt().is_some_and(|(adt, _)| {
+        let ra_ap_hir_def::AdtId::StructId(id) = adt else {
+            return false;
+        };
+        let struct_: ra_ap_hir::Struct = id.into();
+        let module = struct_.module(db);
+        let crate_ = module.krate(db);
+
+        RuntimeAnalysis::get(db)
+            .template(db)
+            .data(db)
+            .dependencies
+            .iter()
+            .any(|dep| {
+                dep.name.to_string() == "aux_next" && ra_ap_hir::Crate::from(dep.crate_id) == crate_
+            })
+            && struct_.name(db).display(db, crate_.edition(db)).to_string() == "JsValue"
+            && module
+                .path_segments(db)
+                .map(|name| name.display(db, crate_.edition(db)).to_string())
+                .eq(["runtime", "js"])
+    }) {
+        return RsType::JsValue;
+    }
+
+    RsType::RustHandle {
+        borrow: HandleBorrow::Owned,
     }
 }
 
@@ -333,7 +407,11 @@ mod tests {
                     ],
                 );
 
-                assert_eq!(macro_.inputs(&db), &[expected], "{name}");
+                assert_eq!(
+                    macro_.inputs(&db),
+                    std::slice::from_ref(&expected),
+                    "{name}"
+                );
                 assert_eq!(macro_.ret_type(&db), expected, "{name}");
                 assert_eq!(
                     expected.transport(),
@@ -345,7 +423,12 @@ mod tests {
             for (body, expected) in [
                 ("42", RsType::I32),
                 ("1.5", RsType::F64),
-                ("42u64", RsType::JsValue),
+                (
+                    "42u64",
+                    RsType::RustHandle {
+                        borrow: HandleBorrow::Owned,
+                    },
+                ),
             ] {
                 let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
                 assert_eq!(macro_.ret_type(&db), expected, "{body}");
@@ -370,8 +453,18 @@ mod tests {
                     RsType::String,
                 ),
                 ("dep::text()", RsType::String),
-                ("struct String; String", RsType::JsValue),
-                ("dep::string::String", RsType::JsValue),
+                (
+                    "struct String; String",
+                    RsType::RustHandle {
+                        borrow: HandleBorrow::Owned,
+                    },
+                ),
+                (
+                    "dep::string::String",
+                    RsType::RustHandle {
+                        borrow: HandleBorrow::Owned,
+                    },
+                ),
                 ("\"borrowed\"", RsType::JsValue),
                 ("&std::string::String::new()", RsType::JsValue),
             ] {
