@@ -20,19 +20,21 @@ test('handles are opaque and cannot be forged from JS', () => {
 
 test('wrong Rust types fail without consuming the handle', () => {
   const message = rs`handy_crate::Message("Hello")`
+  const error = 'Rust handle has an incompatible type: expected `alloc::vec::Vec<u32>`, but the handle contains `handy_crate::Message`'
 
-  expect(() => rs`let value: Vec<u32> = ${message}; drop(value);`).toThrow(/incompatible type/i)
-  expect(() => rs`let value: &Vec<u32> = ${message}; value.len() as u32`).toThrow(/incompatible type/i)
-  expect(() => rs`let value: &mut Vec<u32> = ${message}; value.clear();`).toThrow(/incompatible type/i)
+  expect(() => rs`let value: Vec<u32> = ${message}; drop(value);`).toThrow(error)
+  expect(() => rs`let value: &Vec<u32> = ${message}; value.len() as u32`).toThrow(error)
+  expect(() => rs`let value: &mut Vec<u32> = ${message}; value.clear();`).toThrow(error)
   expect(rs`let value: handy_crate::Message = ${message}; value.0.to_owned()`).toBe('Hello')
 })
 
 test('different generic arguments fail without consuming or mutating the handle', () => {
   const values = rs`vec![1, 2, 3]`
   rs`Vec::<i32>::push(${values}, 4)`
+  const error = 'Rust handle has an incompatible type: expected `alloc::vec::Vec<u32>`, but the handle contains `alloc::vec::Vec<i32>`'
 
-  expect(() => rs`let values: &Vec<u32> = ${values}; values[3]`).toThrow(/incompatible type/i)
-  expect(() => rs`let values: &mut Vec<u32> = ${values}; values.clear();`).toThrow(/incompatible type/i)
-  expect(() => rs`let values: Vec<u32> = ${values}; drop(values);`).toThrow(/incompatible type/i)
+  expect(() => rs`let values: &Vec<u32> = ${values}; values[3]`).toThrow(error)
+  expect(() => rs`let values: &mut Vec<u32> = ${values}; values.clear();`).toThrow(error)
+  expect(() => rs`let values: Vec<u32> = ${values}; drop(values);`).toThrow(error)
   expect(rs`let values: Vec<i32> = ${values}; values.into_iter().sum::<i32>()`).toBe(10)
 })

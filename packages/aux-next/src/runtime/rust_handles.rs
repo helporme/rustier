@@ -1,5 +1,5 @@
 use std::{
-    any::Any,
+    any::{Any, type_name},
     fmt,
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -7,7 +7,12 @@ use std::{
     sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-type Value = Option<Box<dyn Any>>;
+struct StoredValue {
+    value: Box<dyn Any>,
+    // FIXME: debug-only information
+    type_name: &'static str,
+}
+type Value = Option<StoredValue>;
 
 #[derive(Clone)]
 pub struct RustHandle(Rc<RwLock<Value>>);
@@ -15,17 +20,23 @@ pub struct RustHandle(Rc<RwLock<Value>>);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HandleError {
     Moved,
-    TypeMismatch,
+    TypeMismatch {
+        expected: &'static str,
+        actual: &'static str,
+    },
     BorrowConflict,
 }
 
 impl fmt::Display for HandleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Moved => "Passed Rust value was moved elsewhere",
-            Self::TypeMismatch => "Rust handle has an incompatible type",
-            Self::BorrowConflict => "Rust value is already borrowed incompatibly",
-        })
+        match self {
+            Self::Moved => f.write_str("Passed Rust value was moved elsewhere"),
+            Self::TypeMismatch { expected, actual } => write!(
+                f,
+                "Rust handle has an incompatible type: expected `{expected}`, but the handle contains `{actual}`"
+            ),
+            Self::BorrowConflict => f.write_str("Rust value is already borrowed incompatibly"),
+        }
     }
 }
 
@@ -33,7 +44,10 @@ impl std::error::Error for HandleError {}
 
 impl RustHandle {
     pub fn new<T: Any>(value: T) -> Self {
-        Self(Rc::new(RwLock::new(Some(Box::new(value)))))
+        Self(Rc::new(RwLock::new(Some(StoredValue {
+            value: Box::new(value),
+            type_name: type_name::<T>(),
+        }))))
     }
 
     pub fn into_raw(self) -> usize {
@@ -62,14 +76,17 @@ impl RustHandle {
             .map_err(|_| HandleError::BorrowConflict)?;
         let value = guard.as_ref().ok_or(HandleError::Moved)?;
 
-        if !value.is::<T>() {
-            return Err(HandleError::TypeMismatch);
+        if !value.value.is::<T>() {
+            return Err(HandleError::TypeMismatch {
+                expected: type_name::<T>(),
+                actual: value.type_name,
+            });
         }
 
         let Some(value) = guard.take() else {
             unreachable!()
         };
-        let Ok(value) = value.downcast::<T>() else {
+        let Ok(value) = value.value.downcast::<T>() else {
             unreachable!()
         };
 
@@ -80,8 +97,11 @@ impl RustHandle {
         let guard = self.0.try_read().map_err(|_| HandleError::BorrowConflict)?;
         let value = guard.as_ref().ok_or(HandleError::Moved)?;
 
-        if !value.is::<T>() {
-            return Err(HandleError::TypeMismatch);
+        if !value.value.is::<T>() {
+            return Err(HandleError::TypeMismatch {
+                expected: type_name::<T>(),
+                actual: value.type_name,
+            });
         }
 
         Ok(HandleRef {
@@ -97,8 +117,11 @@ impl RustHandle {
             .map_err(|_| HandleError::BorrowConflict)?;
         let value = guard.as_ref().ok_or(HandleError::Moved)?;
 
-        if !value.is::<T>() {
-            return Err(HandleError::TypeMismatch);
+        if !value.value.is::<T>() {
+            return Err(HandleError::TypeMismatch {
+                expected: type_name::<T>(),
+                actual: value.type_name,
+            });
         }
 
         Ok(HandleMut {
@@ -117,7 +140,11 @@ impl<T: Any> Deref for HandleRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        let Some(value) = self.guard.as_ref().and_then(|value| value.downcast_ref()) else {
+        let Some(value) = self
+            .guard
+            .as_ref()
+            .and_then(|value| value.value.downcast_ref())
+        else {
             unreachable!()
         };
 
@@ -134,7 +161,11 @@ impl<T: Any> Deref for HandleMut<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        let Some(value) = self.guard.as_ref().and_then(|value| value.downcast_ref()) else {
+        let Some(value) = self
+            .guard
+            .as_ref()
+            .and_then(|value| value.value.downcast_ref())
+        else {
             unreachable!()
         };
 
@@ -144,7 +175,11 @@ impl<T: Any> Deref for HandleMut<'_, T> {
 
 impl<T: Any> DerefMut for HandleMut<'_, T> {
     fn deref_mut(&mut self) -> &mut T {
-        let Some(value) = self.guard.as_mut().and_then(|value| value.downcast_mut()) else {
+        let Some(value) = self
+            .guard
+            .as_mut()
+            .and_then(|value| value.value.downcast_mut())
+        else {
             unreachable!()
         };
 
@@ -162,7 +197,13 @@ mod tests {
         let handle = RustHandle::new(vec![1_u32, 2]);
         let alias = handle.clone();
 
-        assert_eq!(handle.take::<String>(), Err(HandleError::TypeMismatch));
+        assert_eq!(
+            handle.take::<String>(),
+            Err(HandleError::TypeMismatch {
+                expected: type_name::<String>(),
+                actual: type_name::<Vec<u32>>(),
+            })
+        );
         assert_eq!(handle.take::<Vec<u32>>(), Ok(vec![1, 2]));
         assert_eq!(alias.take::<Vec<u32>>(), Err(HandleError::Moved));
         assert!(matches!(
