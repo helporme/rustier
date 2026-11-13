@@ -4,7 +4,7 @@
 	import { Button } from '#lib/ui/components/button';
 	import { ViteIcon, TsdownIcon, WasmIcon, NodeIcon } from '#lib/ui/components/icons';
 	import SiteHeader from './(components)/site-header.svelte';
-	import GreetingDemo from './(components)/greeting-demo.svelte';
+	import ExampleDemo from './(components)/example-demo.svelte';
 	import Waves from './(components)/waves.svelte';
 </script>
 
@@ -55,7 +55,7 @@
 				>
 			</div>
 		</div>
-		<GreetingDemo />
+		<ExampleDemo />
 	</main>
 	<Waves />
 </div>

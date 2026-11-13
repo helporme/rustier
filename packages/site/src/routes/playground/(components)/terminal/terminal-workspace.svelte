@@ -2,17 +2,15 @@
 	import type { Snippet } from 'svelte';
 	import * as Resizable from '#lib/ui/components/resizable';
 	import { Button } from '#lib/ui/components/button';
-	import type { Compilation } from '#lib/playground/compilation';
 	import { MAX_TERMINAL_SIZE, type Terminal } from './terminal.svelte';
-	import ExecutionOutput from './execution-output.svelte';
 
 	let {
 		terminal,
-		compilation,
+		output,
 		children
 	}: {
 		terminal: Terminal;
-		compilation: Compilation;
+		output: Snippet;
 		children: Snippet;
 	} = $props();
 
@@ -32,48 +30,46 @@
 		>
 			{@render children()}
 		</Resizable.Pane>
-		{#if compilation.status !== 'idle'}
-			<div
-				bind:clientHeight={terminal.handleHeight}
-				style:height={`${terminal.handleSize}px`}
+		<div
+			bind:clientHeight={terminal.handleHeight}
+			style:height={`${terminal.handleSize}px`}
+			class={[
+				'relative z-10 flex shrink-0',
+				!terminal.dragging &&
+					'motion-safe:transition-[height] motion-safe:duration-150 motion-safe:ease-out'
+			]}
+		>
+			<Button
+				variant="ghost"
+				aria-label={terminal.visible ? 'Resize output pane' : 'Open output pane'}
+				aria-controls={id}
+				aria-expanded={terminal.visible}
+				data-active={terminal.dragging && terminal.compactHandle ? 'pointer' : undefined}
+				onpointerdown={terminal.onPointerDown}
+				onpointermove={terminal.onPointerMove}
+				onpointerup={terminal.onPointerEnd}
+				onpointercancel={terminal.onPointerEnd}
+				onlostpointercapture={terminal.onPointerEnd}
+				onclick={terminal.onClick}
+				onkeydown={terminal.onKeyDown}
 				class={[
-					'relative z-10 flex shrink-0',
-					!terminal.dragging &&
-						'motion-safe:transition-[height] motion-safe:duration-150 motion-safe:ease-out'
+					'group relative h-full w-full cursor-ns-resize touch-none border-0 p-0 outline-none after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:ring-2 focus-visible:ring-rust focus-visible:outline-none data-[active=pointer]:bg-rust data-[active=pointer]:ring-1 data-[active=pointer]:ring-rust',
+					terminal.compactHandle
+						? 'bg-ink-outline hover:bg-ink-outline active:bg-ink-outline'
+						: 'border-t border-ink-outline bg-ink-surface-bright hover:bg-ink-surface-bright active:bg-ink-surface-bright'
 				]}
 			>
-				<Button
-					variant="ghost"
-					aria-label={terminal.visible ? 'Resize terminal' : 'Open terminal'}
-					aria-controls={id}
-					aria-expanded={terminal.visible}
-					data-active={terminal.dragging && terminal.compactHandle ? 'pointer' : undefined}
-					onpointerdown={terminal.onPointerDown}
-					onpointermove={terminal.onPointerMove}
-					onpointerup={terminal.onPointerEnd}
-					onpointercancel={terminal.onPointerEnd}
-					onlostpointercapture={terminal.onPointerEnd}
-					onclick={terminal.onClick}
-					onkeydown={terminal.onKeyDown}
+				<span
+					aria-hidden="true"
+					style:opacity={terminal.gripVisibility}
 					class={[
-						'group relative h-full w-full cursor-ns-resize touch-none border-0 p-0 outline-none after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:ring-2 focus-visible:ring-rust focus-visible:outline-none data-[active=pointer]:bg-rust data-[active=pointer]:ring-1 data-[active=pointer]:ring-rust',
-						terminal.compactHandle
-							? 'bg-ink-outline hover:bg-ink-outline active:bg-ink-outline'
-							: 'border-t border-ink-outline bg-ink-surface-bright hover:bg-ink-surface-bright active:bg-ink-surface-bright'
+						'pointer-events-none h-[3px] w-10 rounded-full bg-on-ink-surface-variant/50 group-hover:bg-rust group-focus-visible:bg-rust',
+						!terminal.dragging &&
+							'motion-safe:transition-opacity motion-safe:duration-150 motion-safe:ease-out'
 					]}
-				>
-					<span
-						aria-hidden="true"
-						style:opacity={terminal.gripVisibility}
-						class={[
-							'pointer-events-none h-[3px] w-10 rounded-full bg-on-ink-surface-variant/50 group-hover:bg-rust group-focus-visible:bg-rust',
-							!terminal.dragging &&
-								'motion-safe:transition-opacity motion-safe:duration-150 motion-safe:ease-out'
-						]}
-					></span>
-				</Button>
-			</div>
-		{/if}
+				></span>
+			</Button>
+		</div>
 		<Resizable.Pane
 			bind:this={terminal.pane}
 			bind:ref={terminal.element}
@@ -91,7 +87,7 @@
 		>
 			<div {id} class="h-full" inert={!terminal.visible}>
 				{#if terminal.visible}
-					<ExecutionOutput {compilation} />
+					{@render output()}
 				{/if}
 			</div>
 		</Resizable.Pane>

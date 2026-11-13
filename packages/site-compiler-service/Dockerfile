@@ -2,7 +2,6 @@ ARG NODE_IMAGE=node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2
 FROM ${NODE_IMAGE} AS toolchain
 ARG TARGETARCH
 ARG RUST_TOOLCHAIN=nightly-2026-10-14
-ARG WASM_BINDGEN_VERSION=0.2.129
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl build-essential pkg-config \
     && rm -rf /var/lib/apt/lists/*
@@ -21,17 +20,17 @@ RUN case "$TARGETARCH" in \
       --component rust-src --target wasm32-unknown-unknown \
     && rm /tmp/rustup-init
 RUN npm install -g pnpm@12.10.1
-RUN cargo install wasm-bindgen-cli --version "=$WASM_BINDGEN_VERSION" --locked
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml rust-toolchain.toml LICENSE README.md ./
 COPY packages/rustier/ ./packages/rustier/
-COPY packages/rustier-native/ ./packages/rustier-native/
-COPY packages/rustier-ext/ ./packages/rustier-ext/
+COPY crates/server/ ./crates/server/
+COPY crates/compiler/ ./crates/compiler/
+COPY crates/runtime/ ./crates/runtime/
 COPY packages/site-compiler-service/package.json ./packages/site-compiler-service/
 RUN pnpm install --frozen-lockfile --ignore-scripts
-RUN cargo fetch --locked --manifest-path packages/rustier-native/Cargo.toml
+RUN cargo fetch --locked --manifest-path crates/server/Cargo.toml
 ENV CARGO_NET_OFFLINE=true
-RUN pnpm --filter rustier-native build:release:local \
+RUN pnpm --filter rustier-server build:release \
     && pnpm --filter rustier build:ts
 COPY packages/site-compiler-service/dist ./packages/site-compiler-service/dist
 RUN pnpm pm deploy --filter site-compiler-service --prod --legacy /compiler
@@ -47,9 +46,9 @@ COPY --from=toolchain /opt/cargo/bin /opt/cargo/bin
 COPY --from=toolchain /opt/cargo/registry /opt/cargo/registry
 COPY --from=toolchain --chown=node:node /opt/playground /opt/playground
 COPY --from=toolchain /compiler /app/packages/site-compiler-service
-COPY --from=toolchain /app/packages/rustier-ext/Cargo.toml /app/packages/rustier-ext/Cargo.toml
-COPY --from=toolchain /app/packages/rustier-ext/src /app/packages/rustier-ext/src
-RUN mkdir -p /work /tmp /proc /dev /app/packages/rustier-native
+COPY --from=toolchain /app/crates/runtime/Cargo.toml /app/crates/runtime/Cargo.toml
+COPY --from=toolchain /app/crates/runtime/src /app/crates/runtime/src
+RUN mkdir -p /work /tmp /proc /dev /app/crates/compiler
 
 FROM ${NODE_IMAGE} AS compiler
 RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap \

@@ -4,7 +4,6 @@ import { MAX_INPUT_BYTES } from './limits.ts';
 const sourceSchema = v.pipe(v.string(), v.maxLength(MAX_INPUT_BYTES));
 
 export const buildInputSchema = v.object({
-	code: sourceSchema,
 	typescript: sourceSchema
 });
 

@@ -4,7 +4,6 @@ export const MAX_TITLE_LENGTH = 100;
 
 export type SharedSource = {
 	title: string;
-	rust: string;
 	typescript: string;
 };
 
@@ -36,8 +35,6 @@ export function isSharedSource(source: unknown): source is SharedSource {
 		typeof source.title === 'string' &&
 		source.title.trim().length > 0 &&
 		source.title.length <= MAX_TITLE_LENGTH &&
-		'rust' in source &&
-		typeof source.rust === 'string' &&
 		'typescript' in source &&
 		typeof source.typescript === 'string' &&
 		new TextEncoder().encode(JSON.stringify(source)).length <= MAX_SOURCE_BYTES
@@ -83,7 +80,8 @@ export async function createShareUrl(playgroundUrl: URL, source: SharedSource) {
 		.replace(/=+$/, '');
 	const url = new URL(playgroundUrl);
 	url.pathname = `${url.pathname.replace(/\/$/, '')}/${slugify(source.title)}`;
-	url.searchParams.set('code', `v1.${encoded}`);
+	url.searchParams.delete('inspect');
+	url.searchParams.set('code', `v2.${encoded}`);
 	if (url.href.length > MAX_SHARE_URL_LENGTH) {
 		throw new Error('Share link exceeds the 8 KB limit. Try shortening the code.');
 	}
@@ -91,7 +89,12 @@ export async function createShareUrl(playgroundUrl: URL, source: SharedSource) {
 }
 
 export async function decodeSharedSource(code: string): Promise<SharedSource> {
-	if (code.length > MAX_SHARE_URL_LENGTH || !/^v1\.[A-Za-z0-9_-]+$/.test(code)) {
+	if (code.startsWith('v1.')) {
+		throw new Error(
+			'This snippet uses the original Rustier API. Create a new inline TypeScript snippet.'
+		);
+	}
+	if (code.length > MAX_SHARE_URL_LENGTH || !/^v2\.[A-Za-z0-9_-]+$/.test(code)) {
 		throw new Error('Invalid share link.');
 	}
 	const bytes = Uint8Array.from(
@@ -103,12 +106,8 @@ export async function decodeSharedSource(code: string): Promise<SharedSource> {
 		MAX_SOURCE_BYTES
 	);
 	const source = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(decoded));
-	// Links produced before titles were introduced still contain an example ID.
-	if (source && source.title === undefined && typeof source.example === 'string') {
-		source.title = 'Shared snippet';
-	}
 	if (!isSharedSource(source)) {
 		throw new Error('Invalid shared code.');
 	}
-	return { title: source.title, rust: source.rust, typescript: source.typescript };
+	return { title: source.title, typescript: source.typescript };
 }

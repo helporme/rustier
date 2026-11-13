@@ -36,7 +36,9 @@ services:
       watch:
         - path: ../rustier/src
           action: rebuild
-        - path: ../rustier-native/src
+        - path: ../../crates/server/src
           action: rebuild
-        - path: ../rustier-ext/src
+        - path: ../../crates/compiler/src
+          action: rebuild
+        - path: ../../crates/runtime/src
           action: rebuild

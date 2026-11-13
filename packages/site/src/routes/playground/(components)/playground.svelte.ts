@@ -1,7 +1,7 @@
 import { examples } from './examples/examples';
-import { MediaQuery, SvelteURL } from 'svelte/reactivity';
-import { Inspector } from '#lib/playground/inspector';
+import { SvelteURL } from 'svelte/reactivity';
 import { Compilation } from '#lib/playground/compilation';
+import { Analyzer } from '#lib/playground/analysis';
 import { Terminal } from './terminal/terminal.svelte';
 import { untrack } from 'svelte';
 import { createShareUrl, sharedId, type SharedSnippet } from './snippets/share';
@@ -13,7 +13,6 @@ export type PlaygroundSelection = {
 };
 
 export class Playground {
-	#desktop = new MediaQuery('(min-width: 48rem)', true);
 	#selection = '';
 	#shared: SharedSnippet | null = null;
 	saved = new SavedSnippets();
@@ -21,27 +20,19 @@ export class Playground {
 	saveError = $state('');
 	copied = $state(false);
 
-	sourceTab = $state('lib.rs');
-	mobileTab = $state('lib.rs');
-	outputTab = $state('js_code');
 	selected = $state<string>(examples[0].id);
 	drafts = $state(
 		Object.fromEntries(
-			examples.map((example) => [
-				example.id,
-				{ rust: String(example.rust), typescript: String(example.typescript) }
-			])
+			examples.map((example) => [example.id, { typescript: String(example.typescript) }])
 		)
 	);
 
-	inspector = new Inspector(() => (this.inspect ? this.source.rust : undefined));
 	compilation = new Compilation();
+	analyzer = new Analyzer(() => this.source.typescript);
 	terminal = new Terminal();
+	outputTab = $state('results');
 
-	constructor(
-		private readonly getInspect: () => boolean,
-		getSelection: () => PlaygroundSelection
-	) {
+	constructor(getSelection: () => PlaygroundSelection) {
 		this.restore(getSelection());
 		$effect(() => {
 			const selection = getSelection();
@@ -62,7 +53,6 @@ export class Playground {
 		if (shared) {
 			if (!this.drafts[id]) {
 				this.drafts[id] = {
-					rust: shared.source.rust,
 					typescript: shared.source.typescript
 				};
 			}
@@ -88,7 +78,6 @@ export class Playground {
 		try {
 			const source = {
 				title: title.trim(),
-				rust: this.source.rust,
 				typescript: this.source.typescript
 			};
 			const link = createShareUrl(url, source).then((href) => {
@@ -126,19 +115,12 @@ export class Playground {
 	};
 
 	run = () => {
+		this.outputTab = 'results';
 		this.terminal.show();
-		return this.compilation.run(this.source.rust, this.source.typescript);
+		return this.compilation.run(this.source.typescript);
 	};
-
-	get inspect() {
-		return this.getInspect();
-	}
 
 	get source() {
 		return this.drafts[this.selected];
-	}
-
-	get direction() {
-		return this.#desktop.current ? 'horizontal' : 'vertical';
 	}
 }

@@ -1,7 +1,7 @@
 import { onMount } from 'svelte';
 import { isSharedSource, MAX_SHARE_URL_LENGTH, type SharedSnippet } from './share';
 
-const STORAGE_KEY = 'rustier.shared-snippets.v1';
+const STORAGE_KEY = 'rustier.shared-snippets.v2';
 
 function isSharedSnippet(value: unknown): value is SharedSnippet {
 	return (
@@ -10,7 +10,7 @@ function isSharedSnippet(value: unknown): value is SharedSnippet {
 		'code' in value &&
 		typeof value.code === 'string' &&
 		value.code.length <= MAX_SHARE_URL_LENGTH &&
-		/^v1\.[A-Za-z0-9_-]+$/.test(value.code) &&
+		/^v2\.[A-Za-z0-9_-]+$/.test(value.code) &&
 		'source' in value &&
 		isSharedSource(value.source)
 	);

@@ -1,13 +1,7 @@
-import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { rolldown } from "rolldown";
-import {
-  Server,
-  type ServerDiagnostic,
-  type ServerDiagnosticSeverity,
-  type ServerPlatform,
-  type ServerWasmLoading,
-} from "rustier/unstable";
+import { rolldown, RolldownMagicString } from "rolldown";
+import { Server } from "rustier-server";
 import { EXECUTION_CONSOLE } from "../../../site/src/lib/playground/compilation/execution-protocol.ts";
 import type {
   BuildInput,
@@ -15,95 +9,56 @@ import type {
 } from "../../../site/src/lib/playground/compilation/schema.ts";
 
 const root = path.resolve(process.env.PLAYGROUND_ROOT ?? "/work/project");
-const source = path.join(root, "src", "lib.rs");
-const manifest = `[package]
-name = "playground"
-version = "0.0.0"
-edition = "2024"
-publish = false
-build = false
-
-[workspace]
-`;
-const platform: ServerPlatform = {
-  type: "Wasm",
-  target: 0 as ServerWasmLoading.Fetch,
-};
-const entryId = "\0playground.ts";
-const bindingsLoaderId = "\0playground-bindings";
+const entryId = path.join(root, "index.ts");
+const runtimeId = "playground:runtime";
 const wasmModuleId = "playground:wasm";
+const profile = "playground";
 let server: Server | undefined;
 
-export async function compile({ code, typescript }: BuildInput): Promise<CompilerResult> {
+export async function compile({
+  typescript,
+}: BuildInput): Promise<CompilerResult> {
   const started = performance.now();
-  const failure = (diagnostics: ServerDiagnostic[]): CompilerResult => ({
-    type: "err",
-    message: diagnostics
-      .map((diagnostic) =>
-        diagnostic.rendered
-          .replaceAll(`${root}${path.sep}`, "")
-          .replaceAll(root, "."),
-      )
-      .join("\n"),
-    duration: performance.now() - started,
-  });
-
-  await mkdir(path.dirname(source), { recursive: true });
-  await writeFile(source, code);
-
-  await writeFile(path.join(root, "Cargo.toml"), manifest);
-
-  if (server) {
-    const changed = server.change({ filePath: source, contents: code });
-
-    if (changed.type === "Err") return failure([changed.error]);
-  } else {
-    const created = Server.create({
-      rootDir: root,
-      manifestPath: "Cargo.toml",
-      ts: false,
-    });
-
-    if (created.type === "Err") return failure([created.error]);
-
-    server = created.value;
-  }
-
-  const errors = server
-    .check()
-    .filter(
-      (diagnostic) =>
-        diagnostic.severity === (0 as ServerDiagnosticSeverity.Error),
-    );
-
-  if (errors.length > 0) return failure(errors);
-
-  const built = server.build({ platform, release: false });
-
-  if (built.type === "Err") return failure([built.error]);
-
-  const [binary] = built.value.binPaths;
-
-  if (!binary) throw new Error("The Rust build produced no WebAssembly module");
-
-  const bindingsPath = binary.replace(/_bg\.wasm$/, ".js");
-  const artifactDir = await realpath(path.dirname(binary));
-  const isGeneratedJavaScript = (file: string) => {
-    const relative = path.relative(artifactDir, file);
-    return (
-      relative !== "" &&
-      relative !== ".." &&
-      !relative.startsWith(`..${path.sep}`) &&
-      !path.isAbsolute(relative) &&
-      /\.(?:js|mjs)$/.test(file)
-    );
-  };
-  const loaded = server;
-  const modules = loaded.modules();
-  const rootModule = modules.find((module) => module.isRoot)?.path;
   let bundle: Awaited<ReturnType<typeof rolldown>> | undefined;
 
   try {
+    await mkdir(root, { recursive: true });
+    server ??= new Server({
+      rootDir: root,
+      profiles: {
+        [profile]: {
+          backend: { type: "wasm", loading: "fetch" },
+          release: false,
+        },
+      },
+    });
+
+    const transformed = server.transformModule(
+      profile,
+      entryId,
+      typescript,
+      runtimeId,
+    );
+    const diagnostics = [...transformed.diagnostics, ...server.check(profile)];
+    if (diagnostics.length)
+      throw new Error([...new Set(diagnostics)].join("\n"));
+
+    const source = new RolldownMagicString(typescript);
+    for (const edit of transformed.edits) {
+      if (edit.start === edit.end) source.appendLeft(edit.start, edit.text);
+      else source.overwrite(edit.start, edit.end, edit.text);
+    }
+
+    const runtime = `import __playgroundWasmUrl from ${JSON.stringify(wasmModuleId)};\n${server
+      .renderJsFfi(profile, wasmModuleId)
+      .replaceAll(JSON.stringify(wasmModuleId), "__playgroundWasmUrl")}`;
+    const built = server.build(profile);
+    if (!built.binFfiPath) {
+      throw new Error(
+        built.diagnostics.join("\n") ||
+          "The Rust build produced no WebAssembly module",
+      );
+    }
     bundle = await rolldown({
       input: entryId,
       platform: "browser",
@@ -112,57 +67,29 @@ export async function compile({ code, typescript }: BuildInput): Promise<Compile
       plugins: [
         {
           name: "rustier-playground",
-          async resolveId(id, importer) {
-            if (id === rootModule || id === "./lib.rs") return source;
-            if (id === bindingsPath && importer !== bindingsLoaderId)
-              return bindingsLoaderId;
-
-            if (
-              id === entryId ||
-              id === source ||
-              id === bindingsLoaderId ||
-              id === "$rust" ||
-              id.startsWith("$rust/")
-            )
+          resolveId(id) {
+            if (id === entryId || id === runtimeId || id === "rustier")
               return id;
-
-            const file = path.isAbsolute(id)
-              ? id
-              : importer && isGeneratedJavaScript(importer) && id.startsWith(".")
-                ? path.resolve(path.dirname(importer), id)
-                : undefined;
-
-            if (file && isGeneratedJavaScript(file)) {
-              const canonical = await realpath(file);
-              if (isGeneratedJavaScript(canonical)) return canonical;
-            }
-
             throw new Error(`Unsupported playground import: ${id}`);
           },
           async load(id) {
-            if (id === entryId) {
-              return { code: typescript, moduleType: "ts" };
+            if (id === entryId)
+              return { code: source.toString(), moduleType: "ts" };
+            if (id === runtimeId) return runtime;
+            if (id === "rustier") {
+              return readFile(
+                new URL(import.meta.resolve("rustier")),
+                "utf8",
+              );
             }
-            if (id === bindingsLoaderId) {
-              return `import wasmUrl from ${JSON.stringify(wasmModuleId)};
-import init from ${JSON.stringify(bindingsPath)};
-export * from ${JSON.stringify(bindingsPath)};
-export default () => init({ module_or_path: wasmUrl });`;
-            }
-            if (isGeneratedJavaScript(id)) return readFile(id, "utf8");
-
-            const module = loaded.load(platform, id);
-
-            if (module == null) throw new Error(`Unknown Rust module ${id}`);
-
-            return module;
+            throw new Error(`Unknown playground module: ${id}`);
           },
         },
       ],
     });
 
     const [wasm, { output }] = await Promise.all([
-      readFile(binary),
+      readFile(built.binFfiPath),
       bundle.generate({ format: "es", codeSplitting: false }),
     ]);
 
@@ -174,9 +101,12 @@ export default () => init({ module_or_path: wasmUrl });`;
       duration: performance.now() - started,
     };
   } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause);
     return {
       type: "err",
-      message: cause instanceof Error ? cause.message : String(cause),
+      message: message
+        .replaceAll(`${root}${path.sep}`, "")
+        .replaceAll(root, "."),
       duration: performance.now() - started,
     };
   } finally {

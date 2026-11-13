@@ -4,17 +4,13 @@
 	import { page } from '$app/state';
 	import { SvelteURL } from 'svelte/reactivity';
 	import Toolbar from '../(components)/toolbar.svelte';
-	import EditorWorkspace from '../(components)/editors/editor-workspace.svelte';
-	import TerminalWorkspace from '../(components)/terminal/terminal-workspace.svelte';
+	import PlaygroundWorkspace from '../(components)/editors/playground-workspace.svelte';
 	import { Playground } from '../(components)/playground.svelte';
 	import { slugify } from '../(components)/snippets/share';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const playground = new Playground(
-		() => page.url.searchParams.has('inspect'),
-		() => data.selection
-	);
+	const playground = new Playground(() => data.selection);
 
 	async function save(title: string, copy: boolean) {
 		const url = new SvelteURL(page.url.href);
@@ -30,30 +26,13 @@
 		);
 		return true;
 	}
-
-	function setInspect(inspect: boolean) {
-		const url = new SvelteURL(page.url.href);
-		url.searchParams.delete('inspect');
-		if (inspect) url.searchParams.set('inspect', '');
-		const route = url.search
-			? (`/playground/[[slug]]${url.search}${url.hash}` as `/playground/[[slug]]?${string}`)
-			: url.hash
-				? (`/playground/[[slug]]${url.hash}` as `/playground/[[slug]]#${string}`)
-				: '/playground/[[slug]]';
-		void goto(
-			resolve(route, {
-				slug: page.params.slug
-			}),
-			{ reset: false, state: page.state }
-		);
-	}
 </script>
 
 <svelte:head>
 	<title>{playground.title} — Rustier playground</title>
 	<meta
 		name="description"
-		content="Explore Rust and TypeScript side by side in the Rustier playground."
+		content="Explore inline Rust in TypeScript with the Rustier playground."
 	/>
 </svelte:head>
 
@@ -64,7 +43,6 @@
 		selected={playground.selected}
 		title={playground.title}
 		saved={playground.saved}
-		bind:inspect={() => playground.inspect, setInspect}
 		pending={playground.compilation.pending}
 		onrun={playground.run}
 		onsave={save}
@@ -76,12 +54,6 @@
 		<p role="alert" class="border-b border-ink-outline px-6 py-2 text-ui">{data.shareError}</p>
 	{/if}
 	<main aria-label="Playground editors" class="min-h-0 flex-1">
-		<TerminalWorkspace terminal={playground.terminal} compilation={playground.compilation}>
-			<EditorWorkspace
-				{playground}
-				bind:rust={playground.source.rust}
-				bind:typescript={playground.source.typescript}
-			/>
-		</TerminalWorkspace>
+		<PlaygroundWorkspace {playground} />
 	</main>
 </div>

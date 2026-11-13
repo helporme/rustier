@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import rustier from 'rustier/vite';
 
+const browser = { crates: { 'rustier-site': { path: '.' } } };
+
 export default defineConfig({
 	envDir: fileURLToPath(new URL('../../', import.meta.url)),
 	plugins: [
@@ -20,17 +22,19 @@ export default defineConfig({
 			adapter: adapter(),
 			experimental: { remoteFunctions: true }
 		}),
-		rustier()
+		{ ...rustier({ browser }), apply: 'serve' }
 	],
 	ssr: {
-		noExternal: [/.*/],
-		external: ['rustier', 'rustier-native']
+		noExternal: [/.*/]
+	},
+	optimizeDeps: {
+		include: ['typescript']
 	},
 	build: {
 		cssTarget: ['chrome123', 'edge123', 'firefox120', 'safari17.5', 'ios17.5']
 	},
 	worker: {
-		plugins: () => [rustier()],
+		plugins: () => [rustier({ browser })],
 		format: 'es'
 	}
 });

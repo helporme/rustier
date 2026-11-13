@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"strict": true,
 		"types": ["$app/types", "node"],
-		"rootDirs": [".", ".svelte-kit/types", ".rustier/types"]
+		"rootDirs": [".", ".svelte-kit/types"]
 	},
-	"include": ["src", "vite.config.ts", ".rustier/types", ".rustier/ambient.d.ts"]
+	"include": ["src", "vite.config.ts"]
 }

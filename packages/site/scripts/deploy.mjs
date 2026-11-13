@@ -76,8 +76,7 @@ export async function compilerFingerprint(architecture) {
 		}))
 			visit(name, version);
 	}
-	for (const name of ['rustier', 'rustier-native', 'site-compiler-service']) {
-		const key = `packages/${name}`;
+	for (const key of ['packages/rustier', 'crates/server', 'packages/site-compiler-service']) {
 		const importer = (selected.importers[key] = lock.importers[key]);
 		for (const group of ['dependencies', 'devDependencies', 'optionalDependencies'])
 			for (const [name, dependency] of Object.entries(importer[group] ?? {}))
@@ -86,8 +85,9 @@ export async function compilerFingerprint(architecture) {
 	const hash = createHash('sha256').update(architecture).update(JSON.stringify(selected));
 	for (const name of [
 		'packages/rustier',
-		'packages/rustier-native',
-		'packages/rustier-ext',
+		'crates/server',
+		'crates/compiler',
+		'crates/runtime',
 		'packages/site-compiler-service',
 		'rust-toolchain.toml',
 		'pnpm-workspace.yaml'
@@ -97,11 +97,7 @@ export async function compilerFingerprint(architecture) {
 		for (const entry of entries) {
 			// Rustier's generated output is rebuilt inside the image; the service bundle
 			// is built locally and includes all its shared site-side contracts.
-			if (
-				(name !== 'packages/site-compiler-service' && entry.startsWith('dist/')) ||
-				(name === 'packages/rustier-native' && /^rustier\.(js|d\.ts)$/.test(entry))
-			)
-				continue;
+			if (name !== 'packages/site-compiler-service' && entry.startsWith('dist/')) continue;
 			const content = await fs.readFile(path.join(base, entry));
 			hash.update(`${name}/${entry}\0${content.length}\0`).update(content);
 		}

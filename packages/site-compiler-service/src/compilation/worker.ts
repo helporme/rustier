@@ -1,8 +1,9 @@
-import { cp, mkdir, readFile, symlink } from "node:fs/promises";
+import { cp, mkdir, symlink } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import * as v from "valibot";
 import { buildInputSchema } from "../../../site/src/lib/playground/compilation/schema.ts";
 import { compile } from "./compile.ts";
+import { seedSource } from "./seed.ts";
 
 export async function runWorker() {
   await mkdir("/work/cargo", { recursive: true });
@@ -13,8 +14,7 @@ export async function runWorker() {
   });
 
   const warmed = await compile({
-    code: await readFile("/work/project/src/lib.rs", "utf8"),
-    typescript: "",
+    typescript: seedSource,
   });
 
   if (warmed.type !== "ok") throw new Error(warmed.message);

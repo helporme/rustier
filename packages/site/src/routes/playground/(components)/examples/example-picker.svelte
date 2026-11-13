@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Check, ChevronDown, X } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { Button } from '#lib/ui/components/button';
 	import * as Popover from '#lib/ui/components/popover';
@@ -17,7 +16,6 @@
 	function route(code?: string): '/playground/[[slug]]' | `/playground/[[slug]]?${string}` {
 		const params = new SvelteURLSearchParams();
 		if (code) params.set('code', code);
-		if (page.url.searchParams.has('inspect')) params.set('inspect', '');
 		const query = params.toString();
 		return query ? `/playground/[[slug]]?${query}` : '/playground/[[slug]]';
 	}

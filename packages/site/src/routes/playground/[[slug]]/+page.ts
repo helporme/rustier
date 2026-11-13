@@ -21,7 +21,9 @@ export const load: PageLoad = async ({ url, params }) => {
 	} catch {
 		return {
 			selection: { example: examples[0].id, shared: null },
-			shareError: 'Could not open this share link. It may be invalid or too large.'
+			shareError: code.startsWith('v1.')
+				? 'This snippet uses the original Rustier API. Create a new inline TypeScript snippet.'
+				: 'Could not open this share link. It may be invalid or too large.'
 		};
 	}
 };

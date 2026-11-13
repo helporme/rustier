@@ -51,11 +51,7 @@
 
 <section
 	aria-label={label ?? `${name} workspace`}
-	style:view-transition-name={readonly
-		? undefined
-		: language === 'rust'
-			? 'rust-editor'
-			: 'typescript-editor'}
+	style:view-transition-name={readonly ? undefined : 'playground-source'}
 	class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-ink-surface-bright"
 >
 	<Tabs.Root

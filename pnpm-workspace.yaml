@@ -1,5 +1,7 @@
 packages:
   - packages/rustier
+  - packages/site
+  - packages/site-compiler-service
   - crates/server
   - examples/*
 allowBuilds:

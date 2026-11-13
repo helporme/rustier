@@ -7,6 +7,7 @@ import type { ExecutionMessage } from './execution-protocol';
 export class Compilation {
 	status = $state<'idle' | 'compiling' | 'running' | 'done' | 'failed'>('idle');
 	output = $state('');
+	source = $state<string>();
 	pending = $derived(this.status === 'compiling' || this.status === 'running');
 	#worker?: Worker;
 	#run = 0;
@@ -21,16 +22,18 @@ export class Compilation {
 		this.#stop();
 		this.status = 'idle';
 		this.output = '';
+		this.source = undefined;
 	};
 
-	run = async (code: string, typescript: string) => {
+	run = async (typescript: string) => {
 		if (this.pending) return;
 		this.clear();
+		this.source = typescript;
 		const run = this.#run;
 		this.status = 'compiling';
 
 		try {
-			const result = await build({ code, typescript });
+			const result = await build({ typescript });
 			if (run !== this.#run) return;
 			if (result.type === 'err') {
 				this.#fail(result.message);

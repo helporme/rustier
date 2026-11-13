@@ -16,7 +16,7 @@ export default defineConfig({
     neverBundle: [
       "fastify",
       "rustier",
-      "rustier-native",
+      "rustier-server",
       "rolldown",
       /\.node$/,
     ],
