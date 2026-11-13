@@ -1,104 +1,38 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import path from 'node:path'
-import { styleText } from 'node:util'
-import type { Plugin, PluginContext, RolldownError } from 'rolldown'
-import {
-  Server,
-  type ServerDiagnostic,
-  ServerDiagnosticSeverity,
-  type ServerLog,
-  ServerLogLevel,
-} from 'rustier-native'
-import { toServerPlatform, type RustierTarget } from './target'
+import { createHash } from 'node:crypto'
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import type { Plugin } from 'rolldown'
+import type { Plugin as VitePlugin, ViteDevServer } from 'vite'
+import { Server } from 'rustier-server'
+import { applyTransformEdits, buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
+import { toProfileOptions, type Platform, type RustierConfiguration } from './options'
 
-export type { RustierTarget } from './target'
+export type { Platform } from './options'
 
-export type RustierOptions = {
-  /**
-   * Path to the Cargo manifest, relative to Rolldown's working directory.
-   *
-   * @default "Cargo.toml"
-   */
-  manifestPath?: string
-  /**
-   * Generate TypeScript declarations for the Rust API.
-   *
-   * @default true
-   */
-  ts?: boolean
-  /**
-   * Rust build profiles available to imported modules.
-   */
+export interface RustierProfile extends RustierConfiguration {
+  platform: Platform
+}
+
+export interface RustierOptions {
+  rootDir?: string
   profiles: Record<string, RustierProfile>
-  /**
-   * Select the build profile for an imported `.rs` module.
-   */
   activeProfile: (fileId: string) => string
-  /**
-   * Control progress logging. Compiler diagnostics are reported independently.
-   */
-  logging?: {
-    /**
-     * Whether the plugin should emit progress logs.
-     *
-     * @default true
-     */
-    enabled?: boolean
-    /**
-     * Include debug and trace messages in addition to normal logs.
-     *
-     * @default false
-     */
-    debug?: boolean
-    /**
-     * `"pretty"` uses colorful logs output with nice formatting.
-     * `"plain"` emits only the original message, without added formatting.
-     *
-     * Structured fields remain available in log metadata in either mode.
-     *
-     * @default "pretty"
-     */
-    format?: 'pretty' | 'plain'
-  }
 }
 
-export interface RustierProfile {
-  target: RustierTarget
-  /**
-   * Whether release build is used.
-   */
-  release?: boolean
-  /** Additional Cargo features enabled on the source crate. */
-  features?: string[]
+export interface RustierPluginApi {
+  check(profile: string): string[]
 }
 
-/**
- * Compile Rust modules and make `.rs` files importable by Rolldown.
- *
- * @example
- * ```ts
- * import { defineConfig } from 'rolldown'
- * import rustier from 'rustier/rolldown'
- *
- * export default defineConfig({
- *   platform: 'node',
- *   plugins: [
- *     rustier({
- *       profiles: {
- *         node: { target: 'node' },
- *         wasm: { target: 'wasm' },
- *       },
- *       activeProfile: (fileId) =>
- *         fileId.includes('.server.') ? 'node' : 'wasm',
- *     }),
- *   ],
- * })
- * ```
- */
-export default function rustier(options: RustierOptions): Plugin {
-  const profileNames = Object.keys(options.profiles)
+export type RustierPlugin = Omit<Plugin, 'api'> & Pick<VitePlugin, 'config' | 'configureServer' | 'enforce'> & {
+  api: RustierPluginApi
+}
 
-  if (profileNames.length === 0) {
+const runtimePrefix = 'rustier:runtime/'
+
+export default function rustier(options: RustierOptions): RustierPlugin {
+  const names = Object.keys(options.profiles)
+
+  if (names.length === 0) {
     throw new Error('rustier requires at least one build profile')
   }
 
@@ -106,261 +40,209 @@ export default function rustier(options: RustierOptions): Plugin {
     throw new Error('rustier requires activeProfile')
   }
 
-  let ctx: PluginContext = null!
+  const serverOptions = {
+    rootDir: resolve(options.rootDir ?? process.cwd()),
+    profiles: Object.fromEntries(names.map(name => {
+      const profile = options.profiles[name]
 
-  let configured = false;
-  let manifestPath = path.resolve(options.manifestPath ?? './Cargo.toml')
-  let rootDir = path.dirname(manifestPath)
+      return [name, toProfileOptions(profile, profile.platform, false)]
+    })),
+  }
 
-  const serverResult = Server.create({
-    rootDir,
-    manifestPath,
-    ts: options.ts ?? true,
-  })
+  let server: Server | undefined
+  let dev: ViteDevServer | undefined
 
-  const getServer = (ctx: PluginContext) => unwrap(ctx, serverResult)
+  const profiles = new Map(names.map(name => [name, {
+    sources: new Map<string, { code: string, diagnostics: string[] }>(),
+    reportedDiagnostics: new Set<string>(),
+    needsRuntime: false,
+    runtimeFileName: null as string | null,
+  }]))
 
-  return {
+  const servedRuntimes = new Map<string, string>()
+  const getServer = () => server ??= new Server(serverOptions)
+
+  const plugin: RustierPlugin = {
     name: 'rustier',
-
     api: {
-      get server() {
-        return ctx ? getServer(ctx) : undefined
+      check(profile) {
+        return getServer().check(profile)
       },
     },
-
-    options(inputOptions) {
-      if (inputOptions.watch === false) return null
-
-      const watch = inputOptions.watch ?? {}
-      const exclude =
-        watch.exclude == null
-          ? []
-          : Array.isArray(watch.exclude)
-            ? watch.exclude
-            : [watch.exclude]
-
-      return {
-        ...inputOptions,
-        watch: {
-          ...watch,
-          // FIXME: .rustier constant is an internal knowledge of server
-          exclude: [...exclude, /[/\\]\.rustier(?:[/\\]|$)/],
-        },
-      }
+    enforce: 'post',
+    config() {
+      return { optimizeDeps: { exclude: ['rustier'] } }
     },
-
+    configureServer(vite) {
+      dev = vite
+    },
     buildStart() {
-      ctx = this
-      const server = getServer(this)
+      for (const [name, state] of profiles) {
+        getServer().reset(name)
+        state.reportedDiagnostics.clear()
 
-      if (!configured) {
-        configured = true;
-        configureLogging(ctx, server, options.logging)
-      }
-
-      watchRustFiles(ctx, rootDir, manifestPath);
-      reportDiagnostics(this, server.check())
-
-      for (const profile of Object.values(options.profiles)) {
-        const platform = toServerPlatform(profile.target)
-        const output = unwrap(
-          this,
-          server.build({
-            platform,
-            release: profile.release ?? false,
-            features: profile.features,
-          }),
-        )
-
-        for (const binPath of output.binPaths) {
-          this.emitFile({
-            type: 'asset',
-            fileName: path.basename(binPath),
-            source: readFileSync(binPath),
-          })
+        for (const [id, source] of state.sources) {
+          const result = getServer().transformModule(name, id, source.code, `${runtimePrefix}${name}`)
+          source.diagnostics = result.diagnostics
         }
+
+        state.needsRuntime = false
+        state.runtimeFileName = null
       }
     },
+    transform(code, id) {
+      if (id.startsWith(`\0${runtimePrefix}`) || id.includes('/node_modules/')) return
 
-    watchChange(filePath, change) {
-      const server = getServer(this)
-      const contents =
-        change.event === 'delete' ? undefined : readFileSync(filePath, 'utf8')
-
-      unwrap(this, server.change({ filePath, contents }))
-    },
-
-    resolveId(source) {
-      if (source.startsWith('$rust')) {
-        return `\0${source}`
-      }
-      return null
-    },
-
-    load(id) {
-      const filePath = id.startsWith('\0$rust') ? id.slice(1) : id
-      if (!filePath.endsWith('.rs') && !filePath.startsWith('$rust')) {
-        return null
-      }
-
-      const profileName = options.activeProfile(filePath)
-      const profile = options.profiles[profileName]
-      if (!profile) {
-        throw new Error(`Unknown Rust build profile: ${profileName}`)
-      }
-
-      const server = getServer(this)
-      return server.load(toServerPlatform(profile.target), filePath)
-    },
-
-    closeBundle() {
-      if (serverResult.type === 'Ok') serverResult.value.onLog(undefined)
-    },
-
-    closeWatcher() {
-      if (serverResult.type === 'Ok') serverResult.value.onLog(undefined)
-    },
-  }
-}
-
-function configureLogging(ctx: PluginContext, server: Server, options: RustierOptions['logging']) {
-  if (options?.enabled === false) {
-    server.onLog(undefined)
-  } else {
-    server.onLog((log) => {
-      const verbose =
-        log.level === ServerLogLevel.Debug ||
-        log.level === ServerLogLevel.Trace
-      if (verbose && !options?.debug) return
-
-      const entry = {
-        message:
-          options?.format === 'plain'
-            ? log.message
-            : prettyLog(log),
-        meta: { target: log.target, fields: log.fields, level: log.level },
-      }
       if (
-        log.level === ServerLogLevel.Error ||
-        log.level === ServerLogLevel.Warn
-      ) {
-        // Trace events are informational; diagnostics control build failure.
-        ctx.warn(entry)
-      } else if (verbose) {
-        ctx.debug(entry)
-      } else {
-        ctx.info(entry)
+        !code.includes('rustier')
+        && ![...profiles.values()].some(state => state.sources.has(id))
+      ) return
+
+      const name = options.activeProfile(id)
+      const state = profiles.get(name)
+
+      if (!state) {
+        this.error(`Unknown Rust build profile: ${name}`)
       }
-    })
-  }
-}
 
-const logStyles = {
-  [ServerLogLevel.Error]: ['red', '[x]'],
-  [ServerLogLevel.Warn]: ['yellow', '[!]'],
-  [ServerLogLevel.Info]: ['cyan', '[i]'],
-  [ServerLogLevel.Debug]: ['gray', '[d]'],
-  [ServerLogLevel.Trace]: ['gray', '[t]'],
-} as const
-
-function prettyLog(log: ServerLog): string {
-  const [color, marker] = logStyles[log.level]
-  const stream = { stream: process.stderr }
-  const duration = formatDuration(log.fields.elapsed_ms)
-  const fields = Object.entries(log.fields)
-    .filter(([key]) => key !== 'elapsed_ms' || duration === undefined)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => {
-      if ((key === 'path' || key === 'cwd') && path.isAbsolute(value)) {
-        const relative = path.relative(process.cwd(), value)
-        if (
-          relative !== '..' &&
-          !relative.startsWith(`..${path.sep}`) &&
-          !path.isAbsolute(relative)
-        ) {
-          value = relative || '.'
+      if (!dev) {
+        for (const [other, previous] of profiles) {
+          if (other !== name && previous.sources.delete(id)) {
+            getServer().removeModule(other, id)
+          }
         }
       }
-      return `${key}=${/\s|=/.test(value) ? JSON.stringify(value) : value}`
-    })
-    .join(' ')
 
-  return [
-    styleText(color, marker, stream),
-    log.message,
-    fields ? styleText('dim', fields, stream) : '',
-    duration ? styleText('dim', `(${duration})`, stream) : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-}
+      let runtimeId = `${runtimePrefix}${name}`
 
-function formatDuration(value: string | undefined): string | undefined {
-  if (value === undefined) return undefined
-  const milliseconds = Number(value)
-  if (!Number.isFinite(milliseconds) || milliseconds < 0) return undefined
-  if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`
-  if (milliseconds < 60_000) return `${(milliseconds / 1000).toFixed(2)} s`
-  return `${Math.floor(milliseconds / 60_000)} min ${Math.floor((milliseconds % 60_000) / 1000)} s`
-}
+      if (dev) {
+        const hash = createHash('sha256').update(id).update(code).digest('hex').slice(0, 16)
+        runtimeId += `/${hash}`
+        servedRuntimes.set(runtimeId, name)
+      }
 
-function watchRustFiles(ctx: PluginContext, rootDir: string, manifestPath: string) {
-  const srcDir = path.join(rootDir, 'src')
+      const transformed = getServer().transformModule(name, id, code, runtimeId)
+      if (dev && state.sources.get(id)?.code !== code) state.reportedDiagnostics.clear()
+      state.sources.set(id, { code, diagnostics: transformed.diagnostics })
+      reportDiagnostics(state.reportedDiagnostics, transformed.diagnostics, message => this.warn(message))
 
-  // FIXME: replace it with enumerating files from the rust module graph
-  // or run a separate file watcher since it's kind of crazy to explicitly register each path
-  ctx.addWatchFile(srcDir)
-  for (const entry of readdirSync(srcDir, {
-    recursive: true,
-    withFileTypes: true,
-  })) {
-    if (
-      entry.isDirectory() ||
-      (entry.isFile() && entry.name.endsWith('.rs'))
-    ) {
-      ctx.addWatchFile(path.join(entry.parentPath, entry.name))
-    }
+      return applyTransformEdits(code, id, transformed.edits)
+    },
+    resolveId(id) {
+      if (!id.startsWith(runtimePrefix)) return
+
+      if (dev) {
+        if (!servedRuntimes.has(id)) {
+          this.error(`Unknown Rust runtime: ${id}`)
+        }
+
+        return `\0${id}`
+      }
+
+      const state = profiles.get(id.slice(runtimePrefix.length))
+
+      if (!state) {
+        this.error(`Unknown Rust runtime: ${id}`)
+      }
+
+      state.needsRuntime = true
+
+      return { id, external: true }
+    },
+    load(id) {
+      if (!dev || !id.startsWith(`\0${runtimePrefix}`)) return
+
+      const name = servedRuntimes.get(id.slice(1))
+
+      if (!name) {
+        this.error(`Unknown Rust runtime: ${id}`)
+      }
+
+      const result = getServer().build(name)
+
+      if (!result.binFfiPath) {
+        this.error(result.diagnostics.join('\n') || 'Rustier build failed')
+      }
+
+      reportDiagnostics(profiles.get(name)!.reportedDiagnostics, result.diagnostics, message => this.warn(message))
+
+      const platform = options.profiles[name].platform
+      let binary = result.binFfiPath
+
+      if (platform.type === 'wasm') {
+        if (platform.loading === 'node-js') {
+          binary = pathToFileURL(binary).href
+        } else {
+          const path = binary.replaceAll('\\', '/')
+
+          if (!dev.config.server.fs.allow.includes(path)) {
+            dev.config.server.fs.allow.push(path)
+          }
+
+          binary = `${dev.config.base}@fs/${path}`
+        }
+      }
+
+      return getServer().renderJsFfi(name, binary)
+    },
+    buildEnd(error) {
+      if (dev || error) return
+
+      const modules = new Set(this.getModuleIds())
+
+      for (const [name, state] of profiles) {
+        for (const id of state.sources.keys()) {
+          if (modules.has(id)) continue
+
+          getServer().removeModule(name, id)
+          state.sources.delete(id)
+        }
+
+        for (const source of state.sources.values()) {
+          reportDiagnostics(state.reportedDiagnostics, source.diagnostics, message => this.warn(message))
+        }
+
+        if (!state.needsRuntime) continue
+
+        const extension = options.profiles[name].platform.type === 'node' ? 'node' : 'wasm'
+        const binaryName = `bridge-${name}.${extension}`
+        const result = buildRuntime(getServer(), name, binaryName)
+
+        reportDiagnostics(state.reportedDiagnostics, result.diagnostics, message => this.warn(message))
+
+        state.runtimeFileName = result.runtimeFileName
+
+        this.emitFile({ type: 'asset', fileName: binaryName, source: result.binary })
+        this.emitFile({ type: 'asset', fileName: result.runtimeFileName, source: result.runtime })
+      }
+    },
+    renderStart(output) {
+      const hasRuntime = [...profiles.values()].some(state => state.runtimeFileName !== null)
+
+      if (output.format !== 'es' && hasRuntime) {
+        this.error('Rustier runtime assets require ES module output')
+      }
+    },
+    renderChunk(code, chunk) {
+      const runtimes = new Map<string, string>()
+
+      for (const [name, state] of profiles) {
+        const id = `${runtimePrefix}${name}`
+
+        if (!state.runtimeFileName || !chunk.imports.includes(id)) continue
+
+        runtimes.set(id, state.runtimeFileName)
+      }
+
+      if (runtimes.size) return rewriteRuntimeImports(code, chunk.fileName, runtimes)
+    },
+    closeBundle() {
+      server = undefined
+    },
+    closeWatcher() {
+      server = undefined
+    },
   }
-  ctx.addWatchFile(manifestPath)
-  ctx.addWatchFile(path.join(rootDir, 'Cargo.lock'))
-}
 
-function reportDiagnostics(
-  context: PluginContext,
-  diagnostics: ServerDiagnostic[],
-) {
-  let failure: RolldownError | undefined
-  for (const diagnostic of diagnostics) {
-    const log = diagnosticLog(diagnostic)
-    if (diagnostic.severity === ServerDiagnosticSeverity.Error) {
-      if (failure) failure.message += `\n${log.message}`
-      else failure = { ...log, stack: '' }
-    } else if (diagnostic.severity === ServerDiagnosticSeverity.Warning)
-      context.warn(log)
-    else context.info(log)
-  }
-  if (failure) context.error(failure)
-}
-
-function unwrap<T>(
-  context: PluginContext,
-  result: { type: 'Ok'; value: T } | { type: 'Err'; error: ServerDiagnostic },
-): T {
-  if (result.type === 'Err') context.error(diagnosticLog(result.error))
-  return result.value
-}
-
-function diagnosticLog(diagnostic: ServerDiagnostic): RolldownError {
-  const file = diagnostic.loc?.file ?? diagnostic.file
-  return {
-    pluginCode: diagnostic.code,
-    message: diagnostic.rendered,
-    id: file,
-    // rolldown 1.0's logger requires a filename when loc is present
-    loc: diagnostic.loc && file ? { ...diagnostic.loc, file } : undefined,
-    url: diagnostic.url,
-    meta: { diagnostic },
-    stack: '',
-  }
+  return plugin
 }

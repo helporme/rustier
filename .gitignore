@@ -3,7 +3,6 @@ dist
 *.tsbuildinfo
 *.local.*
 target/
-.rustier-next/
 .rustier/
 *.node
 .DS_Store
@@ -11,14 +10,8 @@ target/
 .env.*
 !.env.example
 
-/packages/.rustier-native.napi-stage-*/
-/packages/.server-next.napi-stage-*/
-/packages/server-next/.dist.napi-stage-*/
-/packages/server-next/.napi-rs-filesystem-transaction*.swp/
-/packages/server-next/.*.prepared.tmp
-/packages/server-next/.*.retired.tmp
-/packages/server-next/.*.rollback.tmp
-/packages/rustier-native/.napi-rs-filesystem-transaction*.swp/
-/packages/rustier-native/.*.prepared.tmp
-/packages/rustier-native/.*.retired.tmp
-/packages/rustier-native/.*.rollback.tmp
+/crates/server/.dist.napi-stage-*/
+/crates/server/.napi-rs-filesystem-transaction*.swp/
+/crates/server/.*.prepared.tmp
+/crates/server/.*.retired.tmp
+/crates/server/.*.rollback.tmp

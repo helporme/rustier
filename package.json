@@ -2,11 +2,7 @@
   "name": "rustier-workspace",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter site dev",
-    "deploy": "pnpm --filter site run deploy",
-    "test": "pnpm --filter rustier run test",
-    "test/e2e": "pnpm --filter rustier run test/e2e",
-    "test/cli": "pnpm --filter rustier run test/cli",
-    "test/cli/regen": "pnpm --filter rustier run test/cli/regen"
+    "build": "pnpm --filter rustier run build",
+    "test": "pnpm --filter rustier run test"
   }
 }

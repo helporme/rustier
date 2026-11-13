@@ -1,0 +1,20 @@
+{
+  "name": "rustier-server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/rustier-server.js",
+  "types": "dist/rustier-server.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "napi build --manifest-path Cargo.toml --platform --esm --js rustier-server.js --dts rustier-server.d.ts --output-dir dist",
+    "build:release": "pnpm run build --release"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.6.2"
+  },
+  "napi": {
+    "binaryName": "rustier-server",
+    "targets": []
+  }
+}

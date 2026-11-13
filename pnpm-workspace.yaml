@@ -1,6 +1,6 @@
 packages:
-  - packages/*
-  - packages/rustier/tests/e2e
+  - packages/rustier
+  - crates/server
   - examples/*
 allowBuilds:
   esbuild: true

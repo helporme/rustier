@@ -1,54 +1,38 @@
 {
   "name": "rustier",
   "version": "0.0.1",
-  "description": "Import Rust code in JavaScript and TypeScript builds.",
+  "description": "Inline Rust macros for JavaScript and TypeScript builds.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/helporme/rustier.git",
     "directory": "packages/rustier"
   },
-  "files": [
-    "dist"
-  ],
   "type": "module",
-  "scripts": {
-    "prepare": "pnpm run build",
-    "build:ts": "tsdown",
-    "build:native": "cd ../rustier-native && pnpm run build",
-    "build:native-release": "cd ../rustier-native && pnpm run build:release",
-    "build": "pnpm run build:native && pnpm run build:ts",
-    "build:release": "pnpm run build:native-release && pnpm run build:ts",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "test": "pnpm run test/cli && pnpm run test/e2e",
-    "test/e2e": "pnpm run build && cd tests/e2e && pnpm run test",
-    "test/cli": "pnpm run build:ts && vitest run --config tests/cli/vitest.config.ts",
-    "test/cli/regen": "pnpm run test/cli --mode regen",
-    "test:vite": "pnpm --dir tests/e2e exec vitest run --config vitest.vite.config.ts"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@napi-rs/cli": "^3.6.2",
-    "@types/node": "^25.6.2",
-    "eslint": "^10.3.0",
-    "prettier": "^3.8.3",
-    "publint": "^0.3.20",
-    "rolldown": "^1.0.0",
-    "rustier-native": "workspace:*",
-    "tsdown": "^0.21.10",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.0",
-    "vitest": "^4.1.7"
-  },
+  "files": ["dist"],
   "exports": {
-    "./cli": "./dist/cli.mjs",
+    ".": "./dist/index.mjs",
     "./rolldown": "./dist/rolldown.mjs",
     "./tsdown": "./dist/tsdown.mjs",
-    "./unstable": "./dist/unstable.mjs",
     "./vite": "./dist/vite.mjs"
+  },
+  "scripts": {
+    "build:native": "pnpm --dir ../../crates/server run build",
+    "build:ts": "tsdown",
+    "build": "pnpm run build:native && pnpm run build:ts",
+    "test": "pnpm run build && vitest run",
+    "build:release": "pnpm --dir ../../crates/server run build:release && pnpm run build:ts"
+  },
+  "dependencies": {
+    "rustier-server": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "rolldown": "^1.0.0",
+    "tsdown": "^0.22.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.7"
   },
   "peerDependencies": {
     "rolldown": "^1.0.0",
@@ -56,20 +40,8 @@
     "vite": "^8.0.0"
   },
   "peerDependenciesMeta": {
-    "rolldown": {
-      "optional": true
-    },
-    "tsdown": {
-      "optional": true
-    },
-    "vite": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "commander": "^15.0.0"
-  },
-  "bin": {
-    "rustier": "./dist/cli/bin.mjs"
+    "vite": { "optional": true },
+    "tsdown": { "optional": true },
+    "rolldown": { "optional": true }
   }
 }

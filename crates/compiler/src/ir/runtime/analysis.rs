@@ -1,0 +1,641 @@
+//! Analysis running on macros to derive it's input/output types.
+
+use ra_ap_base_db::Crate;
+use ra_ap_hir::HasSource;
+use ra_ap_hir_def::{
+    DefWithBodyId, ModuleDefId,
+    builtin_type::{BuiltinFloat, BuiltinInt, BuiltinType, BuiltinUint},
+    expr_store::ExpressionStore,
+    nameres::crate_def_map,
+};
+use ra_ap_hir_ty::{
+    InferenceResult,
+    next_solver::{DbInterner, FnSig, GenericArgKind, Ty, TyKind},
+};
+use ra_ap_syntax::{AstNode, ast, ast::HasName};
+use salsa::Setter;
+
+use super::{HandleBorrow, RsMacro, RsPart, RsType};
+use crate::db::{Db, VirtFile};
+
+mod compile_errors;
+
+pub use compile_errors::CompileError;
+
+/// The dependency and source configuration used by all runtime type queries.
+#[salsa::input(singleton)]
+pub struct RuntimeAnalysis {
+    template: Crate,
+}
+
+impl RuntimeAnalysis {
+    /// Sets the macro analysis in a context of a given template crate.
+    pub fn set(db: &mut dyn Db, template: Crate) -> Self {
+        match Self::try_get(db) {
+            Some(input) => {
+                if input.template(db) != template {
+                    input.set_template(db).to(template);
+                }
+
+                input
+            }
+            None => Self::new(db, template),
+        }
+    }
+}
+
+#[salsa::tracked]
+impl<'db> RsMacro<'db> {
+    /// Checks the macro's rust code for compile errors using rust-analyzer.
+    ///
+    /// It's not necessary capable of detecting all compile errors, but it can
+    /// catch most common ones.
+    #[salsa::tracked(returns(ref))]
+    pub fn check_compile_errors(self, db: &'db dyn Db) -> Option<Vec<CompileError>> {
+        let source = self.render_analysis_rs(db, Some(self.inputs(db)), Some(self.ret_type(db)));
+        let file = VirtFile::new(db, source.text.as_str(), source.source_map);
+        let crate_ = single_file_crate(db, file);
+
+        compile_errors::check(db, crate_)
+    }
+
+    /// Whether rust-analyzer found no compilation errors in this macro.
+    pub fn is_compilable(self, db: &'db dyn Db) -> bool {
+        self.check_compile_errors(db).is_none()
+    }
+
+    #[salsa::tracked(returns(ref))]
+    pub fn inputs(self, db: &'db dyn Db) -> Vec<RsType> {
+        let file = self.analysis_file_for_inputs(db);
+
+        match infer_closure(db, file) {
+            Some((callable, _)) => callable
+                .inputs()
+                .iter()
+                .copied()
+                .map(|ty| classify_type(db, ty))
+                .collect(),
+            None => self
+                .body(db)
+                .iter()
+                .filter_map(|part| match part {
+                    RsPart::Input => Some(RsType::JsValue),
+                    RsPart::Text(_) => None,
+                })
+                .collect(),
+        }
+    }
+
+    #[salsa::tracked]
+    pub fn ret_type(self, db: &'db dyn Db) -> RsType {
+        let file = self.analysis_file_for_output(db);
+
+        infer_closure(db, file).map_or(RsType::JsValue, |(callable, _)| {
+            let output = callable.output();
+
+            let type_ = match result_types(db, output) {
+                Some((value, _)) if matches!(value.inner().internee, TyKind::Error(_)) => {
+                    RsType::Void
+                }
+                Some((value, _)) => classify_type(db, value),
+                None => classify_type(db, output),
+            };
+
+            match type_ {
+                RsType::RustHandle {
+                    borrow: HandleBorrow::Shared | HandleBorrow::Mutable,
+                } => RsType::JsValue,
+                _ => type_,
+            }
+        })
+    }
+
+    /// Whether the macro can return an error.
+    #[salsa::tracked]
+    pub fn can_return_error(self, db: &'db dyn Db) -> bool {
+        self.returns_result(db)
+            || self
+                .inputs(db)
+                .iter()
+                .any(|ty| matches!(ty, RsType::RustHandle { .. }))
+    }
+
+    #[salsa::tracked]
+    pub(crate) fn returns_result(self, db: &'db dyn Db) -> bool {
+        let file = self.analysis_file_for_output(db);
+
+        infer_closure(db, file).is_some_and(|(callable, has_try)| {
+            has_try || result_types(db, callable.output()).is_some()
+        })
+    }
+
+    /// Whether rust-analyzer inferred the error type of the macro's `Result`.
+    ///
+    /// Unlike `can_return_error`, which determines whether the macro can return an error,
+    /// this functions returns whether the rust-analyzer knows concrete error type for the
+    /// macro's `Result`. Usually if this function returns `false`, codegen needs to use Box<dyn Error + ...>
+    /// or similar to handle the error.
+    #[salsa::tracked]
+    pub(crate) fn has_inferred_error_type(self, db: &'db dyn Db) -> bool {
+        infer_closure(db, self.analysis_file_for_output(db)).is_some_and(|(callable, _)| {
+            result_types(db, callable.output())
+                .is_some_and(|(_, error)| !error.references_non_lt_error())
+        })
+    }
+
+    #[salsa::tracked]
+    fn analysis_file_for_inputs(self, db: &'db dyn Db) -> VirtFile {
+        let source = self.render_analysis_rs(db, None, None);
+
+        VirtFile::new(db, source.text.as_str(), source.source_map)
+    }
+
+    #[salsa::tracked]
+    fn analysis_file_for_output(self, db: &'db dyn Db) -> VirtFile {
+        let types = self.inputs(db);
+        let source = self.render_analysis_rs(db, Some(types), None);
+
+        VirtFile::new(db, source.text.as_str(), source.source_map)
+    }
+}
+
+fn infer_closure<'db>(db: &'db dyn Db, file: VirtFile) -> Option<(FnSig<'db>, bool)> {
+    let crate_ = single_file_crate(db, file);
+    let def_map = crate_def_map(db, crate_);
+
+    let (function_id, source) = def_map.modules[def_map.root]
+        .scope
+        .declarations()
+        .find_map(|item| {
+            let ModuleDefId::FunctionId(id) = item else {
+                return None;
+            };
+
+            let function: ra_ap_hir::Function = id.into();
+            let source = function.source(db)?;
+
+            source
+                .value
+                .name()
+                .is_some_and(|name| name.text() == "__rustier_probe")
+                .then_some((id, source))
+        })?;
+
+    let closure = source
+        .value
+        .syntax()
+        .descendants()
+        .find_map(ast::ClosureExpr::cast)?;
+
+    let has_try = closure
+        .syntax()
+        .descendants()
+        .filter_map(ast::TryExpr::cast)
+        .any(|expr| {
+            expr.syntax()
+                .ancestors()
+                .skip(1)
+                .take_while(|node| node != closure.syntax())
+                .all(|node| {
+                    !ast::Fn::can_cast(node.kind())
+                        && !ast::ClosureExpr::can_cast(node.kind())
+                        && !ast::BlockExpr::cast(node).is_some_and(|block| {
+                            block.async_token().is_some()
+                                || block.const_token().is_some()
+                                || block.try_block_modifier().is_some()
+                        })
+                })
+        });
+    let expr = ast::Expr::ClosureExpr(closure);
+    let owner = DefWithBodyId::FunctionId(function_id);
+    let (_, source_map) = ExpressionStore::with_source_map(db, owner.into());
+    let expr_id = source_map.node_expr(ra_ap_hir::InFile::new(source.file_id, &expr))?;
+
+    let inference = InferenceResult::of(db, owner);
+    let ty = inference.expr_or_pat_ty(expr_id);
+    let callable = ty
+        .callable_sig(DbInterner::new_with(db, crate_))?
+        .skip_binder();
+
+    Some((callable, has_try))
+}
+
+/// Constructs a crate containing the macro definition for the given file.
+#[salsa::tracked]
+fn single_file_crate(db: &dyn Db, file: VirtFile) -> Crate {
+    let template = RuntimeAnalysis::get(db).template(db);
+    let mut data = template.data(db).clone();
+    data.root_file_id = file.file_id();
+
+    Crate::builder(
+        data,
+        template.extra_data(db).clone(),
+        template.workspace_data(db).clone(),
+        template.cfg_options(db).clone(),
+        template.env(db).clone(),
+    )
+    .new(db)
+}
+
+fn result_types<'db>(db: &'db dyn Db, ty: Ty<'db>) -> Option<(Ty<'db>, Ty<'db>)> {
+    let (adt, args) = ty.as_adt()?;
+    let ra_ap_hir_def::AdtId::EnumId(id) = adt else {
+        return None;
+    };
+    let enum_: ra_ap_hir::Enum = id.into();
+    let module = enum_.module(db);
+    let crate_ = module.krate(db);
+
+    (crate_.is_builtin(db)
+        && enum_.name(db).display(db, crate_.edition(db)).to_string() == "Result"
+        && module
+            .path_segments(db)
+            .map(|name| name.display(db, crate_.edition(db)).to_string())
+            .eq(["result"]))
+    .then(|| {
+        let mut types = args.types();
+
+        (types.next().unwrap(), types.next().unwrap())
+    })
+}
+
+fn classify_type(db: &dyn Db, ty: Ty<'_>) -> RsType {
+    if let Some((inner, _, mutability)) = ty.as_reference() {
+        return match classify_type(db, inner) {
+            RsType::RustHandle {
+                borrow: HandleBorrow::Owned,
+            } => RsType::RustHandle {
+                borrow: if mutability.is_mut() {
+                    HandleBorrow::Mutable
+                } else {
+                    HandleBorrow::Shared
+                },
+            },
+            _ => RsType::JsValue,
+        };
+    }
+
+    if ty.is_unit() {
+        RsType::Void
+    } else if ty.as_adt().is_some_and(|(adt, _)| {
+        let ra_ap_hir_def::AdtId::StructId(id) = adt else {
+            return false;
+        };
+        let struct_: ra_ap_hir::Struct = id.into();
+        let module = struct_.module(db);
+        let crate_ = module.krate(db);
+
+        crate_.is_builtin(db)
+            && struct_.name(db).display(db, crate_.edition(db)).to_string() == "String"
+            && module
+                .path_segments(db)
+                .map(|name| name.display(db, crate_.edition(db)).to_string())
+                .eq(["string"])
+    }) {
+        RsType::String
+    } else {
+        match ty.as_builtin() {
+            Some(BuiltinType::Bool) => RsType::Bool,
+            Some(BuiltinType::Int(BuiltinInt::I8)) => RsType::I8,
+            Some(BuiltinType::Int(BuiltinInt::I16)) => RsType::I16,
+            Some(BuiltinType::Int(BuiltinInt::I32)) => RsType::I32,
+            Some(BuiltinType::Uint(BuiltinUint::U8)) => RsType::U8,
+            Some(BuiltinType::Uint(BuiltinUint::U16)) => RsType::U16,
+            Some(BuiltinType::Uint(BuiltinUint::U32)) => RsType::U32,
+            Some(BuiltinType::Float(BuiltinFloat::F32)) => RsType::F32,
+            Some(BuiltinType::Float(BuiltinFloat::F64)) => RsType::F64,
+            _ => classify_owned_handle(db, ty),
+        }
+    }
+}
+
+fn classify_owned_handle(db: &dyn Db, ty: Ty<'_>) -> RsType {
+    if ty.references_non_lt_error()
+        || ty
+            .walk()
+            .any(|arg| matches!(arg.kind(), GenericArgKind::Lifetime(_)))
+        || matches!(
+            ty.inner().internee,
+            TyKind::Never | TyKind::Str | TyKind::Slice(_)
+        )
+    {
+        return RsType::JsValue;
+    }
+
+    if ty.as_adt().is_some_and(|(adt, _)| {
+        let ra_ap_hir_def::AdtId::StructId(id) = adt else {
+            return false;
+        };
+        let struct_: ra_ap_hir::Struct = id.into();
+        let module = struct_.module(db);
+        let crate_ = module.krate(db);
+
+        RuntimeAnalysis::get(db)
+            .template(db)
+            .data(db)
+            .dependencies
+            .iter()
+            .any(|dep| {
+                dep.name.to_string() == "rustier" && ra_ap_hir::Crate::from(dep.crate_id) == crate_
+            })
+            && struct_.name(db).display(db, crate_.edition(db)).to_string() == "JsValue"
+            && module
+                .path_segments(db)
+                .map(|name| name.display(db, crate_.edition(db)).to_string())
+                .eq(["runtime", "js"])
+    }) {
+        return RsType::JsValue;
+    }
+
+    RsType::RustHandle {
+        borrow: HandleBorrow::Owned,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::RootDatabase;
+    use crate::test_common::{database, template};
+
+    #[test]
+    fn error_only_result_success_types() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            for (body, expected) in [
+                ("std::result::Result::Err(\"Error\")", RsType::Void),
+                ("return std::result::Result::Err(\"Error\");", RsType::Void),
+                ("std::result::Result::<u32, _>::Err(\"Error\")", RsType::U32),
+                (
+                    "std::result::Result::<rustier::runtime::js::JsValue, _>::Err(\"Error\")",
+                    RsType::JsValue,
+                ),
+            ] {
+                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+
+                assert!(macro_.can_return_error(&db), "{body}");
+                assert!(macro_.has_inferred_error_type(&db), "{body}");
+                assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+        });
+    }
+
+    #[test]
+    fn numeric_signatures() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            for (name, expected) in [
+                ("i8", RsType::I8),
+                ("i16", RsType::I16),
+                ("i32", RsType::I32),
+                ("u8", RsType::U8),
+                ("u16", RsType::U16),
+                ("u32", RsType::U32),
+                ("f32", RsType::F32),
+                ("f64", RsType::F64),
+            ] {
+                let macro_ = RsMacro::new(
+                    &db,
+                    vec![
+                        RsPart::Text(format!(
+                            "type Number = {name}; fn identity(value: Number) -> Number {{ value }} identity("
+                        )),
+                        RsPart::Input,
+                        RsPart::Text(")".into()),
+                    ],
+                );
+
+                assert_eq!(
+                    macro_.inputs(&db),
+                    std::slice::from_ref(&expected),
+                    "{name}"
+                );
+                assert_eq!(macro_.ret_type(&db), expected, "{name}");
+                assert_eq!(
+                    expected.transport(),
+                    crate::ir::transport::TransportTypeRs::F64
+                );
+                assert_eq!(expected.js(), crate::ir::runtime::JsType::Number);
+            }
+
+            for (body, expected) in [
+                ("42", RsType::I32),
+                ("1.5", RsType::F64),
+                (
+                    "42u64",
+                    RsType::RustHandle {
+                        borrow: HandleBorrow::Owned,
+                    },
+                ),
+            ] {
+                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+                assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+        });
+    }
+
+    #[test]
+    fn string_signatures() {
+        let mut db = database();
+        let template = template(
+            &mut db,
+            "pub mod string { pub struct String; } pub fn text() -> std::string::String { loop {} }",
+        );
+        RuntimeAnalysis::set(&mut db, template);
+
+        ra_ap_hir::attach_db(&db, || {
+            for (body, expected) in [
+                ("std::string::String::new()", RsType::String),
+                (
+                    "type Text = std::string::String; Text::new()",
+                    RsType::String,
+                ),
+                ("dep::text()", RsType::String),
+                (
+                    "struct String; String",
+                    RsType::RustHandle {
+                        borrow: HandleBorrow::Owned,
+                    },
+                ),
+                (
+                    "dep::string::String",
+                    RsType::RustHandle {
+                        borrow: HandleBorrow::Owned,
+                    },
+                ),
+                ("\"borrowed\"", RsType::JsValue),
+                ("&std::string::String::new()", RsType::JsValue),
+            ] {
+                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+                assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+
+            for (prefix, suffix) in [
+                ("let value: std::string::String = ", "; value"),
+                (
+                    "type Text = std::string::String; fn identity(value: Text) -> Text { value } identity(",
+                    ")",
+                ),
+            ] {
+                let macro_ = RsMacro::new(
+                    &db,
+                    vec![
+                        RsPart::Text(prefix.into()),
+                        RsPart::Input,
+                        RsPart::Text(suffix.into()),
+                    ],
+                );
+                assert_eq!(macro_.inputs(&db), &[RsType::String]);
+                assert_eq!(macro_.ret_type(&db), RsType::String);
+            }
+        });
+    }
+
+    #[test]
+    fn boolean_signatures() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            for (prefix, suffix) in [
+                ("let value: bool = ", "; value"),
+                (
+                    "type Flag = bool; fn take(value: Flag) -> Flag { value } take(",
+                    ")",
+                ),
+                ("if ", " { true } else { false }"),
+            ] {
+                let macro_ = RsMacro::new(
+                    &db,
+                    vec![
+                        RsPart::Text(prefix.into()),
+                        RsPart::Input,
+                        RsPart::Text(suffix.into()),
+                    ],
+                );
+
+                assert_eq!(macro_.inputs(&db), &[RsType::Bool]);
+                assert_eq!(macro_.ret_type(&db), RsType::Bool);
+            }
+        });
+    }
+
+    #[test]
+    fn signatures_need_only_shared_database_access() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            for (body, expected) in [
+                ("", RsType::Void),
+                ("()", RsType::Void),
+                ("return ();", RsType::Void),
+                ("fn nothing() {} nothing()", RsType::Void),
+                ("true", RsType::Bool),
+                ("false", RsType::Bool),
+                ("fn value() -> bool { true } value()", RsType::Bool),
+                ("__rustier_env.undefined()", RsType::JsValue),
+                ("__rustier_env.undefined().discard()", RsType::Void),
+            ] {
+                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+                assert_eq!(macro_.ret_type(&db), expected, "{body}");
+            }
+            let macro_ = RsMacro::new(
+                &db,
+                vec![
+                    RsPart::Text("let _: () = ".into()),
+                    RsPart::Input,
+                    RsPart::Text("; ".into()),
+                    RsPart::Input,
+                ],
+            );
+            assert_eq!(macro_.inputs(&db), &[RsType::Void, RsType::JsValue]);
+            assert_eq!(macro_.ret_type(&db), RsType::JsValue);
+        });
+    }
+
+    #[test]
+    fn dependency_snapshot_changes_invalidate_the_same_macro() {
+        let mut db = RootDatabase::default();
+        let initial = template(&mut db, "pub fn value() {} pub fn consume(_: ()) {}");
+        RuntimeAnalysis::set(&mut db, initial);
+        let body = vec![RsPart::Text("dep::value()".into())];
+
+        ra_ap_hir::attach_db(&db, || {
+            assert_eq!(RsMacro::new(&db, body.clone()).ret_type(&db), RsType::Void);
+            let input_body = vec![
+                RsPart::Text("dep::consume(".into()),
+                RsPart::Input,
+                RsPart::Text(")".into()),
+            ];
+            assert_eq!(RsMacro::new(&db, input_body).inputs(&db), &[RsType::Void]);
+        });
+
+        let changed = template(&mut db, "pub fn value() -> u32 { 42 }");
+        RuntimeAnalysis::set(&mut db, changed);
+
+        ra_ap_hir::attach_db(&db, || {
+            assert_eq!(RsMacro::new(&db, body).ret_type(&db), RsType::U32);
+        });
+    }
+
+    #[test]
+    fn snippets_are_isolated_from_each_other() {
+        let db = database();
+
+        ra_ap_hir::attach_db(&db, || {
+            let first = RsMacro::new(&db, vec![RsPart::Text("fn helper() {} helper()".into())]);
+            let second = RsMacro::new(
+                &db,
+                vec![RsPart::Text("fn helper() -> u32 { 1 } helper()".into())],
+            );
+            assert_eq!(first.ret_type(&db), RsType::Void);
+            assert_eq!(second.ret_type(&db), RsType::U32);
+            assert_eq!(first.ret_type(&db), RsType::Void);
+        });
+    }
+
+    #[test]
+    fn unchanged_configuration_retains_the_inference_cache() {
+        let mut db = database();
+        let input = RuntimeAnalysis::get(&db);
+        let template = input.template(&db);
+        let body = vec![RsPart::Text("()".into())];
+
+        ra_ap_hir::attach_db(&db, || {
+            assert_eq!(RsMacro::new(&db, body.clone()).ret_type(&db), RsType::Void);
+        });
+
+        let source = RsMacro::new(&db, body.clone()).render_analysis_rs(&db, None, None);
+        let file = VirtFile::new(&db, source.text.as_str(), source.source_map);
+        let before = single_file_crate(&db, file);
+
+        RuntimeAnalysis::set(&mut db, template);
+
+        ra_ap_hir::attach_db(&db, || {
+            assert_eq!(before, single_file_crate(&db, file));
+            assert_eq!(template, input.template(&db));
+            assert_eq!(RsMacro::new(&db, body).ret_type(&db), RsType::Void);
+        });
+    }
+
+    #[test]
+    fn concurrent_queries_do_not_mix_snippets() {
+        let db = database();
+        std::thread::scope(|scope| {
+            for (text, expected) in [
+                ("fn helper() {} helper()", RsType::Void),
+                ("fn helper() -> u32 { 1 } helper()", RsType::U32),
+                ("return ();", RsType::Void),
+            ] {
+                let db = db.clone();
+                scope.spawn(move || {
+                    ra_ap_hir::attach_db(&db, || {
+                        let macro_ = RsMacro::new(&db, vec![RsPart::Text(text.into())]);
+                        assert_eq!(macro_.ret_type(&db), expected);
+                    });
+                });
+            }
+        });
+    }
+}
