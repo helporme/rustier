@@ -1,5 +1,6 @@
 import { rustLanguage } from '@codemirror/lang-rust';
 import { typescriptLanguage } from '@codemirror/lang-javascript';
+import { parseMixed } from '@lezer/common';
 import { highlightTree, tagHighlighter, tags } from '@lezer/highlight';
 import { diagnosticTags, diagnosticsLanguage } from './diagnostics';
 
@@ -7,7 +8,26 @@ export type CodeLanguage = 'rust' | 'typescript' | 'diagnostics' | 'text';
 
 export const languages = {
 	rust: rustLanguage,
-	typescript: typescriptLanguage,
+	typescript: typescriptLanguage.configure({
+		wrap: parseMixed((node, input) => {
+			if (node.name !== 'TaggedTemplateExpression') return null;
+			const tag = node.node.firstChild;
+			const template = node.node.getChild('TemplateString');
+			if (!tag || tag.name !== 'VariableName' || input.read(tag.from, tag.to) !== 'rs' || !template)
+				return null;
+
+			const overlay: { from: number; to: number }[] = [];
+			let from = template.from + 1;
+			const end = template.to - (input.read(template.to - 1, template.to) === '`' ? 1 : 0);
+			for (const interpolation of template.getChildren('Interpolation')) {
+				if (from < interpolation.from) overlay.push({ from, to: interpolation.from });
+				from = interpolation.to;
+			}
+			if (from < end) overlay.push({ from, to: end });
+
+			return overlay.length ? { parser: rustLanguage.parser, overlay } : null;
+		})
+	}),
 	diagnostics: diagnosticsLanguage
 };
 

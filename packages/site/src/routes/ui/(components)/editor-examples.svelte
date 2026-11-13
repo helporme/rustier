@@ -1,3 +1,15 @@
+<script lang="ts" module>
+	const inlineRustExample = `import { rs } from 'rustier'
+
+const text = 'The quick brown fox'
+const words = rs\`
+    let text: String = \${text.trim()};
+    text.split_whitespace().count() as u32
+\`
+
+console.log(words)`;
+</script>
+
 <script lang="ts">
 	import { Button } from '#lib/ui/components/button';
 	import { CodeEditor, type CodeLanguage } from '#lib/ui/components/code-editor';
@@ -33,6 +45,13 @@
 		>
 		<Button variant="outline" onclick={() => (value = '')}>Clear editor</Button>
 		<Button variant="outline" onclick={() => (value = 'const answer = 42;')}>Replace value</Button>
+		<Button
+			variant="outline"
+			onclick={() => {
+				language = 'typescript';
+				value = inlineRustExample;
+			}}>Show inline Rust</Button
+		>
 		<Button
 			variant="outline"
 			onclick={() => {

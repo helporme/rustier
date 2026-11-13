@@ -12,7 +12,8 @@ import {
 	bracketMatching,
 	indentOnInput,
 	syntaxHighlighting,
-	indentUnit
+	indentUnit,
+	LanguageSupport
 } from '@codemirror/language';
 import {
 	autocompletion,
@@ -27,7 +28,7 @@ import { highlighter, languages, type CodeLanguage } from './highlight';
 
 const languageExtensions = {
 	rust: [languages.rust, languages.rust.data.of({ autocomplete: completeAnyWord })],
-	typescript: javascript({ typescript: true }),
+	typescript: new LanguageSupport(languages.typescript, javascript({ typescript: true }).support),
 	diagnostics: languages.diagnostics,
 	text: []
 };
