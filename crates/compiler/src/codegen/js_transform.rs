@@ -13,6 +13,31 @@ pub struct JsEdit {
     pub text: String,
 }
 
+pub fn edits_to_utf16<'a>(
+    source: &'a str,
+    edits: &'a [JsEdit],
+) -> impl Iterator<Item = JsEdit> + 'a {
+    let mut byte_offset = 0;
+    let mut utf16_offset = 0;
+
+    edits.iter().map(move |edit| {
+        utf16_offset += source[byte_offset..edit.start as usize]
+            .encode_utf16()
+            .count() as u32;
+        let start = utf16_offset;
+        utf16_offset += source[edit.start as usize..edit.end as usize]
+            .encode_utf16()
+            .count() as u32;
+        byte_offset = edit.end as usize;
+
+        JsEdit {
+            start,
+            end: utf16_offset,
+            text: edit.text.clone(),
+        }
+    })
+}
+
 #[salsa::tracked]
 impl<'db> JsModule<'db> {
     /// Replaces imported `rs` tags with calls to their exported macro functions.

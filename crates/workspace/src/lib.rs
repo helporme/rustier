@@ -12,6 +12,8 @@ use rustier_compiler::{
     codegen::manifest::render_manifest, db::RootDatabase, ir::runtime::RuntimeAnalysis,
 };
 
+pub use serde_json;
+
 /// Options for the generated analysis crate.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct WorkspaceOpts {

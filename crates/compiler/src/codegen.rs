@@ -1,6 +1,6 @@
 mod analysis;
 mod fragment;
-mod js_transform;
+pub mod js_transform;
 pub mod manifest;
 mod runtime;
 mod transport;
