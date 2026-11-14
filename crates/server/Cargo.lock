@@ -2115,12 +2115,14 @@ dependencies = [
  "notify",
  "ra_ap_base_db",
  "ra_ap_hir",
+ "ra_ap_hir_expand",
  "ra_ap_load-cargo",
  "ra_ap_project_model",
  "ra_ap_vfs",
  "rustier_compiler",
  "salsa",
  "serde_json",
+ "triomphe",
 ]
 
 [[package]]

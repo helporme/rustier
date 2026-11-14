@@ -36,6 +36,7 @@ pub struct BackendOptions {
 #[napi(object)]
 pub struct ProfileOptions {
     pub release: Option<bool>,
+    pub proc_macros: Option<bool>,
     pub backend: BackendOptions,
     pub crates: Option<HashMap<String, String>>,
 }
@@ -79,6 +80,7 @@ struct Profile {
     program: JsProgram,
     directory: PathBuf,
     release: bool,
+    proc_macros: bool,
     backend: TransportBackend,
     crates: BTreeMap<String, String>,
     revision: Arc<AtomicU64>,
@@ -159,6 +161,7 @@ impl Server {
                     program: JsProgram::new(&db, Vec::new()),
                     directory: root.join(".rustier/bridge").join(name),
                     release: options.release.unwrap_or(false),
+                    proc_macros: options.proc_macros.unwrap_or(false),
                     backend,
                     crates,
                     revision: Arc::new(AtomicU64::new(0)),
@@ -269,7 +272,7 @@ impl Server {
             let mut byte_offset = 0;
             let mut utf16_offset = 0;
             let edits = module
-                .render_edits(&self.db, ffi_js_mod_path)
+                .render_transform_edits(&self.db, ffi_js_mod_path)
                 .iter()
                 .map(|edit| {
                     utf16_offset += source[byte_offset..edit.start as usize]
@@ -380,7 +383,7 @@ impl Server {
         let snapshot = match &profile.analysis {
             Some((version, snapshot)) if *version == revision => snapshot.clone(),
             _ => {
-                let manifest = profile.program.render_cargo_toml(&self.db, &profile.crates);
+                let manifest = compiler::codegen::manifest::render_manifest(&profile.crates);
                 let target = match &profile.backend {
                     TransportBackend::Node(_) => None,
                     TransportBackend::Wasm(wasm) => Some(
@@ -400,7 +403,10 @@ impl Server {
                     .unwrap()
                     .join("analysis")
                     .join(name);
-                Arc::new(analysis::load(&directory, &manifest, target).map_err(Error::from_reason)?)
+                Arc::new(
+                    analysis::load(&directory, &manifest, target, profile.proc_macros)
+                        .map_err(Error::from_reason)?,
+                )
             }
         };
         let template = snapshot.apply(&mut self.db);
@@ -550,7 +556,7 @@ impl Profile {
         let source = ra_ap_hir::attach_db(db, || {
             self.program.runtime(db).render_rs_ffi(db, &self.backend)
         });
-        let manifest = self.program.render_cargo_toml(db, &self.crates);
+        let manifest = compiler::codegen::manifest::render_manifest(&self.crates);
         write_if_changed(&self.directory.join("lib.rs"), source.as_bytes())
             .and_then(|_| write_if_changed(&self.directory.join("Cargo.toml"), manifest.as_bytes()))
             .map_err(|error| Error::from_reason(format!("cannot write bridge crate: {error}")))?;

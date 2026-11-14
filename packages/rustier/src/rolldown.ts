@@ -91,7 +91,7 @@ export default function rustier(options: RustierOptions): RustierPlugin {
       }
     },
     transform(code, id) {
-      if (id.startsWith(`\0${runtimePrefix}`) || id.includes('/node_modules/')) return
+      if (id.startsWith(`\0${runtimePrefix}`) || id.includes('/node_modules/') || /\.d\.[cm]?ts(?:\?|$)/.test(id)) return
 
       if (
         !code.includes('rustier')

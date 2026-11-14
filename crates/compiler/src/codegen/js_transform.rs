@@ -23,7 +23,7 @@ impl<'db> JsModule<'db> {
         fragment(|p| {
             let mut cursor = 0;
 
-            for edit in self.render_edits(db, ffi_js_mod_path) {
+            for edit in self.render_transform_edits(db, ffi_js_mod_path) {
                 source[cursor..edit.start as usize].apply(p);
                 edit.text.as_str().apply(p);
                 cursor = edit.end as usize;
@@ -35,7 +35,7 @@ impl<'db> JsModule<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn render_edits(self, db: &'db dyn Db, ffi_js_mod_path: String) -> Vec<JsEdit> {
+    pub fn render_transform_edits(self, db: &'db dyn Db, ffi_js_mod_path: String) -> Vec<JsEdit> {
         let file = self.file(db);
         let macros = self.macros(db);
         let source = file.contents(db);

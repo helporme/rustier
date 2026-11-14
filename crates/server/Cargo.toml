@@ -17,6 +17,8 @@ ra_ap_project_model = "=0.0.345"
 ra_ap_vfs = "=0.0.345"
 ra_ap_base_db = "=0.0.345"
 ra_ap_hir = "=0.0.345"
+ra_ap_hir_expand = "=0.0.345"
+triomphe = "0.1"
 napi = { version = "3", default-features = false, features = ["napi6", "serde-json"] }
 napi-derive = "3"
 notify = "8"

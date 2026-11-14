@@ -64,18 +64,18 @@ impl JsFile {
     /// Parsing or semantic errors are accumulated as diagnostics and yield a
     /// module with no macro occurrences.
     pub fn module<'db>(self, db: &'db dyn Db) -> JsModule<'db> {
-        module(db, self)
+        parse_module(db, self)
     }
 
     /// Diagnostics accumulated by this snapshot's parsing query.
     pub fn diagnostics(self, db: &dyn Db) -> Vec<&Diag> {
-        module::accumulated::<Diag>(db, self)
+        parse_module::accumulated::<Diag>(db, self)
     }
 }
 
 /// Parses one immutable file snapshot and records raw template and expression ranges.
 #[salsa::tracked]
-fn module<'db>(db: &'db dyn Db, file: JsFile) -> JsModule<'db> {
+fn parse_module<'db>(db: &'db dyn Db, file: JsFile) -> JsModule<'db> {
     let source = file.contents(db);
     let module_id = file.module_id(db);
     let path = module_id.split(['?', '#']).next().unwrap();

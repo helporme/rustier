@@ -6,9 +6,11 @@ use compiler::db::RootDatabase;
 use ra_ap_base_db::{
     Crate, CrateBuilderId, CrateGraphBuilder, FileChange, SourceDatabase, SourceRoot,
 };
+use ra_ap_hir_expand::proc_macro::CrateProcMacros;
 use ra_ap_load_cargo::{LoadCargoConfig, ProcMacroServerChoice, ProjectFolders, load_workspace};
 use ra_ap_project_model::{CargoConfig, ProjectManifest, ProjectWorkspace, RustLibSource};
 use ra_ap_vfs::{AbsPathBuf, FileId, VfsPath};
+use salsa::Setter;
 
 use super::write_if_changed;
 
@@ -16,6 +18,8 @@ pub(super) struct Snapshot {
     crate_graph: CrateGraphBuilder,
     source_roots: Vec<SourceRoot>,
     sources: Vec<(FileId, Arc<str>)>,
+    proc_macros: Vec<(CrateBuilderId, triomphe::Arc<CrateProcMacros>)>,
+    expand_proc_attr_macros: bool,
     template: CrateBuilderId,
 }
 
@@ -31,6 +35,13 @@ impl Snapshot {
 
         let crates = change.apply(db).expect("snapshot contains a crate graph");
 
+        ra_ap_hir::ProcMacros::get(db).set_by_crate(db).to(self
+            .proc_macros
+            .iter()
+            .map(|(id, macros)| (crates[id], macros.clone()))
+            .collect());
+        ra_ap_hir::db::set_expand_proc_attr_macros(db, self.expand_proc_attr_macros);
+
         crates[&self.template]
     }
 }
@@ -39,6 +50,7 @@ pub(super) fn load(
     directory: &Path,
     manifest: &str,
     target: Option<String>,
+    proc_macros: bool,
 ) -> Result<Snapshot, String> {
     std::fs::create_dir_all(directory).map_err(|error| error.to_string())?;
     write_if_changed(&directory.join("Cargo.toml"), manifest.as_bytes())
@@ -52,17 +64,29 @@ pub(super) fn load(
     let manifest =
         ProjectManifest::from_manifest_file(AbsPathBuf::assert_utf8(directory.join("Cargo.toml")))
             .map_err(|error| error.to_string())?;
-    let workspace =
+    let mut workspace =
         ProjectWorkspace::load(manifest, &config, &|_| {}).map_err(|error| error.to_string())?;
+    if proc_macros {
+        let build_scripts = workspace
+            .run_build_scripts(&config, &|_| {})
+            .map_err(|error| error.to_string())?;
+        if let Some(error) = build_scripts.error() {
+            return Err(error.to_owned());
+        }
+        workspace.set_build_scripts(build_scripts);
+    }
+
     let folders = ProjectFolders::new(std::slice::from_ref(&workspace), &[], None);
-    // Do not run build scripts, cargo check, or a proc-macro server. In
-    // particular, analysis never consumes output from the bridge cargo build.
     let (source_db, vfs, _) = load_workspace(
         workspace.clone(),
         &config.extra_env,
         &LoadCargoConfig {
-            load_out_dirs_from_check: false,
-            with_proc_macro_server: ProcMacroServerChoice::None,
+            load_out_dirs_from_check: proc_macros,
+            with_proc_macro_server: if proc_macros {
+                ProcMacroServerChoice::Sysroot
+            } else {
+                ProcMacroServerChoice::None
+            },
             prefill_caches: false,
             num_worker_threads: 1,
             proc_macro_processes: 1,
@@ -87,6 +111,19 @@ pub(super) fn load(
         .find(|id| crate_graph[*id].basic.root_file_id == root_file)
         .ok_or("analysis template crate was not loaded")?;
 
+    let loaded_macros = ra_ap_hir::ProcMacros::get(&source_db).by_crate(&source_db);
+    let expanders = loaded_macros
+        .iter()
+        .map(|(crate_, macros)| {
+            let root = crate_.data(&source_db).root_file_id;
+            let id = crate_graph
+                .iter()
+                .find(|id| crate_graph[*id].basic.root_file_id == root)
+                .expect("loaded proc-macro crate is in the rebuilt graph");
+            (id, macros.clone())
+        })
+        .collect();
+
     let sources = vfs
         .iter()
         .map(|(file, _)| {
@@ -98,6 +135,8 @@ pub(super) fn load(
         crate_graph,
         source_roots: folders.source_root_config.partition(&vfs),
         sources,
+        proc_macros: expanders,
+        expand_proc_attr_macros: proc_macros,
         template,
     })
 }

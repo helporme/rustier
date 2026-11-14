@@ -8,6 +8,7 @@ export type Platform = {
 
 export interface RustierConfiguration {
   release?: boolean
+  procMacros?: boolean
   platform?: Platform
   crates?: Record<string, { path: string }>
 }
@@ -19,6 +20,7 @@ export function toProfileOptions(
 ): ProfileOptions {
   return {
     release: options.release ?? release,
+    procMacros: options.procMacros ?? false,
     backend: platform.type === 'node' ? { type: 'node' } : {
       type: 'wasm',
       loading: platform.loading === 'web' ? 'fetch' : 'node-js',

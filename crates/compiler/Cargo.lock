@@ -113,34 +113,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustier_compiler"
-version = "0.0.1"
-dependencies = [
- "blake3",
- "insta",
- "miette",
- "oxc_allocator",
- "oxc_ast",
- "oxc_diagnostics",
- "oxc_parser",
- "oxc_semantic",
- "oxc_span",
- "prettyplease",
- "ra_ap_base_db",
- "ra_ap_hir",
- "ra_ap_hir_def",
- "ra_ap_hir_ty",
- "ra_ap_ide_db",
- "ra_ap_syntax",
- "ra_ap_vfs",
- "salsa",
- "syn 2.0.119",
- "thiserror",
- "toml",
- "triomphe",
-]
-
-[[package]]
 name = "console"
 version = "0.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1768,6 +1740,34 @@ checksum = "486c2179b4796f65bfe2ee33679acf0927ac83ecf583ad6c91c3b4570911b9ad"
 dependencies = [
  "bitflags",
  "smallvec",
+]
+
+[[package]]
+name = "rustier_compiler"
+version = "0.0.1"
+dependencies = [
+ "blake3",
+ "insta",
+ "miette",
+ "oxc_allocator",
+ "oxc_ast",
+ "oxc_diagnostics",
+ "oxc_parser",
+ "oxc_semantic",
+ "oxc_span",
+ "prettyplease",
+ "ra_ap_base_db",
+ "ra_ap_hir",
+ "ra_ap_hir_def",
+ "ra_ap_hir_ty",
+ "ra_ap_ide_db",
+ "ra_ap_syntax",
+ "ra_ap_vfs",
+ "salsa",
+ "syn 2.0.119",
+ "thiserror",
+ "toml",
+ "triomphe",
 ]
 
 [[package]]

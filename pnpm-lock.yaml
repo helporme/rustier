@@ -84,6 +84,28 @@ importers:
         specifier: ^4.1.7
         version: 4.1.11(@types/node@25.9.9)(vite@8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/rustier-next:
+    dependencies:
+      rustier:
+        specifier: workspace:*
+        version: link:../rustier
+    devDependencies:
+      '@types/node':
+        specifier: ^25.6.2
+        version: 25.9.9
+      rolldown:
+        specifier: ^1.0.0
+        version: 1.2.13
+      tsdown:
+        specifier: ^0.22.0
+        version: 0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39)
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.0
+        version: 8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1)
+
   packages/site:
     dependencies:
       '@codemirror/autocomplete':

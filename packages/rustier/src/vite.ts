@@ -130,7 +130,7 @@ export default function rustier(options: RustierOptions = {}): Plugin {
       return getServer().renderJsFfi(profile, binary)
     },
     transform(code, id) {
-      if (id.includes(runtimePrefix) || id.includes('/node_modules/')) return
+      if (id.includes(runtimePrefix) || id.includes('/node_modules/') || /\.d\.[cm]?ts(?:\?|$)/.test(id)) return
       const profile: ProfileName = this.environment.config.consumer === 'server' ? 'ssr' : 'browser'
       const state = profiles[profile]
       if (!code.includes('rustier') && !state.sources.has(id)) return

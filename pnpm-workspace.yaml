@@ -1,5 +1,6 @@
 packages:
   - packages/rustier
+  - packages/rustier-next
   - packages/site
   - packages/site-compiler-service
   - crates/server
