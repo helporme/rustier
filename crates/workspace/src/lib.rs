@@ -9,20 +9,25 @@ use ra_ap_project_model::{
 };
 use ra_ap_vfs::{AbsPathBuf, VfsPath};
 use rustier_compiler::{
-    codegen::manifest::render_manifest, db::RootDatabase, ir::runtime::RuntimeAnalysis,
+    codegen::manifest::{Dependency, render_manifest},
+    db::RootDatabase,
+    ir::runtime::RuntimeAnalysis,
 };
+use salsa::Setter;
 
-pub use serde_json;
+pub mod build;
 
 /// Options for the generated analysis crate.
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct WorkspaceOpts {
     /// Path to the directory for the generated workspace files.
     pub tmp_path: PathBuf,
-    /// Dependency names mapped to crate directories, relative to the current directory or absolute.
-    pub dependency_crates: BTreeMap<String, String>,
+    /// Dependencies from local paths or registry versions.
+    pub dependency_crates: BTreeMap<String, Dependency>,
     /// Cargo features to enable, such as `my_crate/feature`. Defaults remain enabled.
     pub features: Vec<String>,
+    #[serde(default)]
+    pub target: Option<String>,
 }
 
 impl WorkspaceOpts {
@@ -58,12 +63,16 @@ impl Workspace {
         }
 
         let mut crates = BTreeMap::new();
-        for (name, path) in opts.dependency_crates {
-            let path = fs::canonicalize(path)?;
-            let path = path.into_os_string().into_string().map_err(|_| {
-                io::Error::new(io::ErrorKind::InvalidInput, "crate paths must be UTF-8")
-            })?;
-            crates.insert(name, path);
+        for (name, mut dependency) in opts.dependency_crates {
+            if let Dependency::Path { path } = &mut dependency {
+                *path = fs::canonicalize(&*path)?
+                    .into_os_string()
+                    .into_string()
+                    .map_err(|_| {
+                        io::Error::new(io::ErrorKind::InvalidInput, "crate paths must be UTF-8")
+                    })?;
+            }
+            crates.insert(name, dependency);
         }
 
         let manifest = render_manifest(&crates);
@@ -74,6 +83,7 @@ impl Workspace {
 
         let config = CargoConfig {
             sysroot: Some(RustLibSource::Discover),
+            target: opts.target,
             features: CargoFeatures::Selected {
                 features: opts.features,
                 no_default_features: false,
@@ -81,14 +91,20 @@ impl Workspace {
             ..Default::default()
         };
         let manifest = ProjectManifest::from_manifest_file(directory.join("Cargo.toml"))?;
-        let project = ProjectWorkspace::load(manifest, &config, &|_| {})?;
+        let mut project = ProjectWorkspace::load(manifest, &config, &|_| {})?;
+        let build_scripts = project.run_build_scripts(&config, &|_| {})?;
+        if let Some(error) = build_scripts.error() {
+            return Err(LoadError::Load(anyhow::anyhow!("{error}")));
+        }
+        project.set_build_scripts(build_scripts);
+
         let folders = ProjectFolders::new(std::slice::from_ref(&project), &[], None);
         let (source_db, vfs, _) = load_workspace(
             project.clone(),
             &config.extra_env,
             &LoadCargoConfig {
-                load_out_dirs_from_check: false,
-                with_proc_macro_server: ProcMacroServerChoice::None,
+                load_out_dirs_from_check: true,
+                with_proc_macro_server: ProcMacroServerChoice::Sysroot,
                 prefill_caches: false,
                 num_worker_threads: 1,
                 proc_macro_processes: 1,
@@ -113,6 +129,19 @@ impl Workspace {
             .find(|id| graph[*id].basic.root_file_id == root_file)
             .expect("generated analysis crate is in the crate graph");
 
+        let expanders: Vec<_> = ra_ap_hir::ProcMacros::get(&source_db)
+            .by_crate(&source_db)
+            .iter()
+            .map(|(crate_, macros)| {
+                let root = crate_.data(&source_db).root_file_id;
+                let id = graph
+                    .iter()
+                    .find(|id| graph[*id].basic.root_file_id == root)
+                    .expect("loaded proc-macro crate is in the rebuilt graph");
+                (id, macros.clone())
+            })
+            .collect();
+
         let mut changes = FileChange::default();
         changes.set_roots(folders.source_root_config.partition(&vfs));
         changes.set_crate_graph(graph);
@@ -127,6 +156,13 @@ impl Workspace {
         let mut db = RootDatabase::default();
         let crates = changes.apply(&mut db).expect("a crate graph was supplied");
 
+        ra_ap_hir::ProcMacros::get(&db)
+            .set_by_crate(&mut db)
+            .to(expanders
+                .into_iter()
+                .map(|(id, macros)| (crates[&id], macros))
+                .collect());
+        ra_ap_hir::db::set_expand_proc_attr_macros(&mut db, true);
         RuntimeAnalysis::set(&mut db, crates[&template]);
 
         Ok(Self { db })

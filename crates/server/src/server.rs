@@ -10,13 +10,17 @@ use std::{
 };
 
 use compiler::{
-    codegen::{TransportBackend, TransportBackendNode, TransportBackendWasm, WasmImport},
+    codegen::{
+        TransportBackend, TransportBackendNode, TransportBackendWasm, WasmImport,
+        manifest::Dependency,
+    },
     db::RootDatabase,
     diag::Theme,
     ir::js::{JsFile, JsProgram},
 };
 use napi::{
     Error, Result,
+    bindgen_prelude::Either,
     threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
@@ -34,11 +38,17 @@ pub struct BackendOptions {
 }
 
 #[napi(object)]
+pub struct CrateOptions {
+    pub path: Option<String>,
+    pub version: Option<String>,
+}
+
+#[napi(object)]
 pub struct ProfileOptions {
     pub release: Option<bool>,
     pub proc_macros: Option<bool>,
     pub backend: BackendOptions,
-    pub crates: Option<HashMap<String, String>>,
+    pub crates: Option<HashMap<String, Either<String, CrateOptions>>>,
 }
 
 #[napi(object)]
@@ -82,7 +92,7 @@ struct Profile {
     release: bool,
     proc_macros: bool,
     backend: TransportBackend,
-    crates: BTreeMap<String, String>,
+    crates: BTreeMap<String, Dependency>,
     revision: Arc<AtomicU64>,
     dependency_revision: Arc<AtomicU64>,
     analysis: Option<(u64, Arc<analysis::Snapshot>)>,
@@ -147,11 +157,33 @@ impl Server {
                 .crates
                 .unwrap_or_default()
                 .into_iter()
-                .map(|(name, path)| {
-                    let path = fs::canonicalize(root.join(path)).map_err(|error| {
-                        Error::from_reason(format!("invalid crate path for {name}: {error}"))
-                    })?;
-                    Ok((name, path.to_string_lossy().into_owned()))
+                .map(|(name, options)| {
+                    let dependency = match options {
+                        Either::A(path)
+                        | Either::B(CrateOptions {
+                            path: Some(path),
+                            version: None,
+                        }) => {
+                            let path = fs::canonicalize(root.join(path)).map_err(|error| {
+                                Error::from_reason(format!(
+                                    "invalid crate path for {name}: {error}"
+                                ))
+                            })?;
+                            Dependency::Path {
+                                path: path.to_string_lossy().into_owned(),
+                            }
+                        }
+                        Either::B(CrateOptions {
+                            path: None,
+                            version: Some(version),
+                        }) => Dependency::Registry { version },
+                        Either::B(_) => {
+                            return Err(Error::from_reason(format!(
+                                "crate {name} must specify exactly one of path or version"
+                            )));
+                        }
+                    };
+                    Ok((name, dependency))
                 })
                 .collect::<Result<_>>()?;
 
@@ -408,7 +440,10 @@ impl Server {
         let mut watchers = Vec::new();
         for (name, profile) in &self.profiles {
             let mut directories = BTreeMap::new();
-            for path in profile.crates.values() {
+            for dependency in profile.crates.values() {
+                let Dependency::Path { path } = dependency else {
+                    continue;
+                };
                 let output = Command::new("cargo")
                     .args(["metadata", "--format-version=1", "--manifest-path"])
                     .arg(Path::new(path).join("Cargo.toml"))

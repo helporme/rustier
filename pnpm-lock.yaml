@@ -19,6 +19,9 @@ importers:
       rustier:
         specifier: workspace:*
         version: link:../../packages/rustier
+      rustier-next:
+        specifier: workspace:*
+        version: link:../../packages/rustier-next
       tsdown:
         specifier: ^0.22.0
         version: 0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39)
@@ -102,9 +105,6 @@ importers:
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
-      vite:
-        specifier: ^8.0.0
-        version: 8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1)
 
   packages/site:
     dependencies:

@@ -1705,6 +1705,7 @@ dependencies = [
  "ra_ap_syntax",
  "ra_ap_vfs",
  "salsa",
+ "serde",
  "thiserror",
  "toml",
  "triomphe",

@@ -1,10 +1,10 @@
 import { defineConfig } from "tsdown";
-import rustier from "rustier/tsdown";
+import rustier from "rustier-next";
 
 export default defineConfig({
   plugins: [
     rustier({
-      platform: { type: "node" },
+      backend: { type: "node" },
     }),
   ],
   dts: true,

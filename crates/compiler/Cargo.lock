@@ -1764,6 +1764,7 @@ dependencies = [
  "ra_ap_syntax",
  "ra_ap_vfs",
  "salsa",
+ "serde",
  "syn 2.0.119",
  "thiserror",
  "toml",

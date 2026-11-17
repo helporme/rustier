@@ -10,7 +10,7 @@ export interface RustierConfiguration {
   release?: boolean
   procMacros?: boolean
   platform?: Platform
-  crates?: Record<string, { path: string }>
+  crates?: Record<string, { path: string } | { version: string }>
 }
 
 export function toProfileOptions(
@@ -26,8 +26,6 @@ export function toProfileOptions(
       loading: platform.loading === 'web' ? 'fetch' : 'node-js',
       mem64: platform.mem64 ?? false,
     },
-    crates: Object.fromEntries(
-      Object.entries(options.crates ?? {}).map(([name, crate]) => [name, crate.path]),
-    ),
+    crates: options.crates,
   }
 }

@@ -56,6 +56,11 @@ pub(super) fn render_registration<'db>(
             env: __rustier_napi::napi_env,
             exports: __rustier_napi::napi_value
         ) -> __rustier_napi::napi_value {{
+            #[cfg(target_env = "msvc")]@
+            {{
+                static SETUP: ::std::sync::Once = ::std::sync::Once::new();@
+                SETUP.call_once(|| ::std::mem::forget(unsafe {{ __rustier_napi::setup() }}));@
+            }}@
             {exports}
             exports
         }}

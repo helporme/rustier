@@ -1,6 +1,13 @@
 use std::collections::BTreeMap;
 
-pub fn render_manifest(crates: &BTreeMap<String, String>) -> String {
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum Dependency {
+    Path { path: String },
+    Registry { version: String },
+}
+
+pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
     let aux = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../runtime"); // FIXME: env
     let mut manifest = toml::Table::from_iter([
         (
@@ -38,13 +45,14 @@ pub fn render_manifest(crates: &BTreeMap<String, String>) -> String {
     ]);
 
     let dependencies = manifest["dependencies"].as_table_mut().unwrap();
-    for (name, path) in crates {
+    for (name, dependency) in crates {
+        let (key, value) = match dependency {
+            Dependency::Path { path } => ("path", path),
+            Dependency::Registry { version } => ("version", version),
+        };
         dependencies.insert(
             name.clone(),
-            toml::Value::Table(toml::Table::from_iter([(
-                "path".into(),
-                path.clone().into(),
-            )])),
+            toml::Value::Table(toml::Table::from_iter([(key.into(), value.clone().into())])),
         );
     }
     manifest.to_string()
@@ -58,7 +66,9 @@ mod tests {
     fn manifest() {
         let mut manifest: toml::Table = render_manifest(&BTreeMap::from([(
             "example".into(),
-            "<example-crate>".into(),
+            Dependency::Path {
+                path: "<example-crate>".into(),
+            },
         )]))
         .parse()
         .unwrap();
