@@ -1,9 +1,6 @@
 {
   "name": "rustier",
-  "version": "0.1.0-bootstrap",
-  "publishConfig": { "tag": "bootstrap" },
-  "os": ["darwin"],
-  "cpu": ["arm64"],
+  "version": "0.1.0",
   "description": "Rustier plugins implemented using Rustier.",
   "license": "MIT",
   "repository": {
@@ -30,7 +27,8 @@
   "devDependencies": {
     "@types/node": "^25.6.2",
     "rolldown": "^1.0.0",
-    "rustier-bootstrap": "npm:rustier@0.0.0-bootstrap",
+    "rustier-bootstrap": "npm:rustier@0.1.0-bootstrap",
+    "rustier-legacy-tests": "npm:rustier@0.0.0-bootstrap",
     "tsdown": "^0.22.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.7"

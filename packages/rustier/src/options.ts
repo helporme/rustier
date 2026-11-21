@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
-import { nativePlatforms, recommendedTargets, type NativeTargetName, type Target, type TargetOptions, type ResolvedTarget } from './targets'
+import { nativePlatforms, recommendedTargets, type BuildDriver, type NativeTargetName, type Target, type TargetOptions, type ResolvedTarget } from './targets'
 
-export type { Target, TargetName, NativeTargetName, WasmTargetName, TargetOptions, Loading } from './targets'
+export type { BuildDriver, Target, TargetName, NativeTargetName, WasmTargetName, TargetOptions, Loading } from './targets'
 
 /**
  * Where runtime artifacts are distributed.
@@ -114,6 +114,12 @@ export interface RustierOptions {
    */
   targets?: Target[] | 'recommended'
   /**
+   * Command used to compile generated glue.
+   * @default 'auto'
+   * @example 'cargo'
+   */
+  buildDriver?: BuildDriver
+  /**
    * Artifact layout for regular builds.
    * @default 'inline'
    * @example { type: 'npm', packageName: '@acme/library-bindings' }
@@ -206,6 +212,7 @@ export function normalizeOptions(options: RustierOptions, watch: boolean, host: 
     if (!['web', 'node-js', 'module'].includes(loading)) throw new Error(`Invalid Wasm loading mode: ${loading}`)
     return {
       target, kind, platform, loading,
+      buildDriver: entry.buildDriver ?? options.buildDriver ?? 'auto',
       features: [...new Set(entry.features ?? [])].sort(),
       env: { ...entry.env },
       release: dev ? dev.release ?? false : options.release ?? true,

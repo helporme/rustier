@@ -80,8 +80,8 @@ impl Workspace {
         let manifest = render_manifest(&crates);
         fs::create_dir_all(&opts.tmp_path)?;
         let directory = AbsPathBuf::assert_utf8(fs::canonicalize(&opts.tmp_path)?);
-        fs::write(directory.join("Cargo.toml"), manifest)?;
-        fs::write(directory.join("lib.rs"), "")?;
+        build::write_if_changed(directory.join("Cargo.toml").as_ref(), manifest.as_bytes())?;
+        build::write_if_changed(directory.join("lib.rs").as_ref(), b"")?;
 
         let config = CargoConfig {
             sysroot: Some(RustLibSource::Discover),
@@ -98,8 +98,9 @@ impl Workspace {
             ..Default::default()
         };
         let manifest = ProjectManifest::from_manifest_file(directory.join("Cargo.toml"))?;
-        let mut project = ProjectWorkspace::load(manifest, &config, &|_| {})?;
-        let build_scripts = project.run_build_scripts(&config, &|_| {})?;
+        let progress = |message: String| eprintln!("{message}");
+        let mut project = ProjectWorkspace::load(manifest, &config, &progress)?;
+        let build_scripts = project.run_build_scripts(&config, &progress)?;
         if let Some(error) = build_scripts.error() {
             return Err(LoadError::Load(anyhow::anyhow!("{error}")));
         }

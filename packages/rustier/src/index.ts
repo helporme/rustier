@@ -5,12 +5,12 @@ import { RolldownMagicString, type Plugin } from 'rolldown'
 import { parseSync } from 'rolldown/utils'
 import type { TsdownPlugin } from 'tsdown'
 
-import { Compilation, buildBatch, createBatch, hostTarget, removeIteration } from './compiler'
+import { Compilation, buildBatch, checkDrivers, createBatch, hostTarget, removeIteration } from './compiler'
 import { normalizeOptions, type EffectiveOptions, type RustierOptions } from './options'
 import { binaryNames, planDistribution, type DistributionPlan, type RuntimeArtifact } from './distribution/plan'
 import { readPackageMetadata, writePackages } from './distribution/packages'
 
-export type { RustierOptions, DevOptions, CrateOptions, Distribution, Target, TargetName, NativeTargetName, WasmTargetName, TargetOptions, Loading } from './options'
+export type { RustierOptions, DevOptions, CrateOptions, Distribution, BuildDriver, Target, TargetName, NativeTargetName, WasmTargetName, TargetOptions, Loading } from './options'
 
 const runtimeModule = 'rustier:runtime'
 
@@ -64,6 +64,7 @@ export default function rustier(options: RustierOptions = {}): Plugin {
       if (compilations) return
 
       effective = normalizeOptions(options, this.meta.watchMode, hostTarget())
+      checkDrivers(effective.targets)
       try {
         for (const name of readdirSync(resolve(outDir, 'artifacts'))) {
           if (/^(0|[1-9]\d*)$/.test(name) && Number(name) <= 0xffffffff) {

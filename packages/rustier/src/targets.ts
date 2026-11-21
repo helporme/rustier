@@ -54,6 +54,14 @@ export const nativePlatforms: Record<NativeTargetName, NativePlatform> = {
  */
 export type Loading = 'web' | 'node-js' | 'module'
 
+/** Cargo build command.
+ *
+ * `auto` uses Zig for foreign Linux targets and xwin for non-Windows hosts targeting MSVC.
+ *
+ * @example 'cargo'
+ */
+export type BuildDriver = 'cargo' | 'auto' | 'zigbuild' | 'xwin'
+
 /**
  * A compilation target with target-specific build settings.
  * `loading` is accepted only when `target` is a Wasm target name.
@@ -61,6 +69,10 @@ export type Loading = 'web' | 'node-js' | 'module'
  * @example { target: 'aarch64-apple-darwin', env: { MACOSX_DEPLOYMENT_TARGET: '11.0' } }
  */
 export type TargetOptions = {
+  /**
+   * Override the plugin's build driver for this target.
+   */
+  buildDriver?: BuildDriver
   /**
    * Additional Cargo features for this target. Features declared on `crates` remain enabled.
    * @example ['my_crate/simd']
@@ -108,6 +120,7 @@ export const recommendedTargets: readonly Target[] = [
 
 export interface ResolvedTarget {
   target: string
+  buildDriver: BuildDriver
   kind: 'node' | 'wasm32' | 'wasm64'
   loading: Loading
   features: string[]

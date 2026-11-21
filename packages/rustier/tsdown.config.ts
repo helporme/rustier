@@ -18,9 +18,8 @@ export default defineConfig({
       return { code: readFileSync(path, 'utf8'), moduleType: 'text' }
     },
   }, rustier({
-    platform: { type: 'node' },
-    procMacros: true,
-    release: true,
+    // targets: 'recommended',
+    // distribution: 'npm',
     crates: {
       rustc_version: { version: '0.4' },
       serde_json: { version: '1' },

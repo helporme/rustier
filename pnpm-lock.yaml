@@ -72,6 +72,9 @@ importers:
         specifier: ^1.0.0
         version: 1.2.13
       rustier-bootstrap:
+        specifier: npm:rustier@0.1.0-bootstrap
+        version: rustier@0.1.0-bootstrap(rolldown@1.2.13)
+      rustier-legacy-tests:
         specifier: npm:rustier@0.0.0-bootstrap
         version: rustier@0.0.0-bootstrap(rolldown@1.2.13)(tsdown@0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39))(vite@8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1))
       tsdown:
@@ -2583,6 +2586,13 @@ packages:
       vite:
         optional: true
 
+  rustier@0.1.0-bootstrap:
+    resolution: {integrity: sha512-QZRx5mGo5qx7RsFwL4JaU7/F1tADPr7iVS0e1jLJyvrtbMKlj+nN/dFWAuhsDU8YKO8A6hhMyo3spTw97SqRFg==}
+    cpu: [arm64]
+    os: [darwin]
+    peerDependencies:
+      rolldown: ^1.0.0
+
   sade@1.8.1:
     resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
     engines: {node: '>=6'}
@@ -5048,6 +5058,11 @@ snapshots:
       rolldown: 1.2.13
       tsdown: 0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39)
       vite: 8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1)
+
+  rustier@0.1.0-bootstrap(rolldown@1.2.13):
+    dependencies:
+      jsonc-parser: 3.3.1
+      rolldown: 1.2.13
 
   sade@1.8.1:
     dependencies:
