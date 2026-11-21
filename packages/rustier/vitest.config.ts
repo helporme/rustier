@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vitest/config'
-import rustier, { type RustierProfile } from 'rustier/rolldown'
+import rustier, { type RustierProfile } from 'rustier-bootstrap/rolldown'
 
 const crates = {
   'handy-crate': { path: fileURLToPath(new URL('./tests/handy-crate', import.meta.url)) },

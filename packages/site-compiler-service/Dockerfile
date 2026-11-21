@@ -22,7 +22,6 @@ RUN case "$TARGETARCH" in \
 RUN npm install -g pnpm@12.10.1
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml rust-toolchain.toml LICENSE README.md ./
-COPY packages/rustier/ ./packages/rustier/
 COPY crates/server/ ./crates/server/
 COPY crates/compiler/ ./crates/compiler/
 COPY crates/runtime/ ./crates/runtime/
@@ -30,8 +29,7 @@ COPY packages/site-compiler-service/package.json ./packages/site-compiler-servic
 RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN cargo fetch --locked --manifest-path crates/server/Cargo.toml
 ENV CARGO_NET_OFFLINE=true
-RUN pnpm --filter rustier-server build:release \
-    && pnpm --filter rustier build:ts
+RUN pnpm --filter rustier-server build:release
 COPY packages/site-compiler-service/dist ./packages/site-compiler-service/dist
 RUN pnpm pm deploy --filter site-compiler-service --prod --legacy /compiler
 RUN CARGO_NET_OFFLINE=false PLAYGROUND_ROOT=/work/project node packages/site-compiler-service/dist/index.mjs seed \

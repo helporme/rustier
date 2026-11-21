@@ -15,11 +15,10 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "rebuild": "pnpm run rebuild:plugin && pnpm run build",
-    "rebuild:plugin": "pnpm --dir ../../packages/rustier-next run build"
+    "rebuild:plugin": "pnpm --filter rustier run build"
   },
   "devDependencies": {
     "rustier": "workspace:*",
-    "rustier-next": "workspace:*",
     "tsdown": "^0.22.0",
     "typescript": "^6.0.2"
   }
