@@ -7,4 +7,4 @@ packages:
 allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:
-  - rustier@0.0.0-bootstrap || 0.1.0-bootstrap
+  - rustier@0.0.0-bootstrap || 0.1.0-bootstrap || 0.1.0-bootstrap.1

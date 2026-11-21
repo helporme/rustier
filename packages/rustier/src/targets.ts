@@ -113,10 +113,7 @@ export type TargetOptions = {
  */
 export type Target = TargetName | TargetOptions
 
-export const recommendedTargets: readonly Target[] = [
-  ...Object.keys(nativePlatforms),
-  'wasm32-unknown-unknown',
-]
+export const recommendedTargets: readonly Target[] = Object.keys(nativePlatforms)
 
 export interface ResolvedTarget {
   target: string

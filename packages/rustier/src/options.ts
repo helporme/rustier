@@ -101,7 +101,8 @@ export interface RustierOptions {
    * - `aarch64-unknown-linux-musl`
    * - `x86_64-pc-windows-msvc`,
    * - `aarch64-pc-windows-msvc`
-   * - `wasm32-unknown-unknown`
+   *
+   * To build Wasm, include its target explicitly.
    *
    * @default ['host']
    * @example 'recommended'

@@ -18,8 +18,18 @@ export default defineConfig({
       return { code: readFileSync(path, 'utf8'), moduleType: 'text' }
     },
   }, rustier({
-    // targets: 'recommended',
-    // distribution: 'npm',
+    targets: [
+      'aarch64-apple-darwin',
+      'x86_64-apple-darwin',
+      'x86_64-unknown-linux-gnu',
+      'aarch64-unknown-linux-gnu',
+      'x86_64-unknown-linux-musl',
+      'aarch64-unknown-linux-musl',
+      'x86_64-pc-windows-msvc',
+      'aarch64-pc-windows-msvc',
+    ],
+    distribution: 'npm',
+    concurrency: 1,
     crates: {
       rustc_version: { version: '0.4' },
       serde_json: { version: '1' },

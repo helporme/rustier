@@ -19,15 +19,17 @@
   "scripts": {
     "build": "tsdown",
     "test": "pnpm run build && vitest run && pnpm --filter library-example run build",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "prepublishOnly": "node ./npm/publish.mjs"
   },
   "dependencies": {
-    "jsonc-parser": "^3.3.1"
+    "jsonc-parser": "^3.3.1",
+    "rustier-bindings-unknown-unknown-unknown": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
     "rolldown": "^1.0.0",
-    "rustier-bootstrap": "npm:rustier@0.1.0-bootstrap",
+    "rustier-bootstrap": "npm:rustier@0.1.0-bootstrap.1",
     "rustier-legacy-tests": "npm:rustier@0.0.0-bootstrap",
     "tsdown": "^0.22.0",
     "typescript": "^6.0.2",
