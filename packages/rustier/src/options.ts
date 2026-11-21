@@ -1,4 +1,4 @@
-import type { ProfileOptions } from 'rustier-server'
+import type { ProfileOptions } from '#server'
 
 export type Platform = {
   type: 'wasm'

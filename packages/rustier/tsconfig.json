@@ -3,6 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "paths": { "#server": ["../../crates/server/dist/rustier-server.d.ts"] },
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,

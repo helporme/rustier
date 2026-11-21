@@ -8,7 +8,8 @@ export default defineConfig({
     vite: 'src/vite.ts',
   },
   dts: true,
+  copy: ['../../crates/server/dist/rustier-server.{js,d.ts,*.node}'],
   deps: {
-    neverBundle: ['rustier-server', 'rolldown', 'vite'],
+    neverBundle: ['#server', 'rolldown', 'vite'],
   },
 })

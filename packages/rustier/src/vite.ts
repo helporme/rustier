@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'node:url'
 import { normalizePath, type Plugin, type ResolvedConfig, type ViteDevServer } from 'vite'
-import { Server } from 'rustier-server'
+import { Server } from '#server'
 import { applyTransformEdits, buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
 import { toProfileOptions, type RustierConfiguration } from './options'
 

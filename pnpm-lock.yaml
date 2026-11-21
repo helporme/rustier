@@ -63,10 +63,6 @@ importers:
         version: 8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1)
 
   packages/rustier:
-    dependencies:
-      rustier-server:
-        specifier: workspace:*
-        version: link:../../crates/server
     devDependencies:
       '@types/node':
         specifier: ^25.6.2

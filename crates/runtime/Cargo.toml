@@ -1,5 +1,5 @@
 [package]
-name = "rustier"
+name = "rustier_runtime"
 version = "0.0.1"
 edition = "2024"
 description = "Rustier macro runtime and transport support."

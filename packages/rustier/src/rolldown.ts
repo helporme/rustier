@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Plugin } from 'rolldown'
 import type { Plugin as VitePlugin, ViteDevServer } from 'vite'
-import { Server } from 'rustier-server'
+import { Server } from '#server'
 import { applyTransformEdits, buildRuntime, reportDiagnostics, rewriteRuntimeImports } from './bundle'
 import { toProfileOptions, type Platform, type RustierConfiguration } from './options'
 

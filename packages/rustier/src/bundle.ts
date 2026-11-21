@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { posix } from 'node:path'
 import { RolldownMagicString } from 'rolldown'
 import { parseSync } from 'rolldown/utils'
-import type { Server, TransformEdit } from 'rustier-server'
+import type { Server, TransformEdit } from '#server'
 
 export function applyTransformEdits(code: string, id: string, edits: TransformEdit[]) {
   const result = new RolldownMagicString(code)

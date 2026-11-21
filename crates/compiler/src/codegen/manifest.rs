@@ -16,7 +16,6 @@ pub enum Dependency {
 }
 
 pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
-    let aux = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../runtime"); // FIXME: env
     let mut manifest = toml::Table::from_iter([
         (
             "package".to_owned(),
@@ -40,10 +39,10 @@ pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
             "dependencies".to_owned(),
             toml::Value::Table(toml::Table::from_iter([(
                 "rustier".to_owned(),
-                toml::Value::Table(toml::Table::from_iter([(
-                    "path".to_owned(),
-                    toml::Value::String(aux.to_string_lossy().into_owned()),
-                )])),
+                toml::Value::Table(toml::Table::from_iter([
+                    ("package".to_owned(), "rustier_runtime".into()),
+                    ("version".to_owned(), "=0.0.1".into()),
+                ])),
             )])),
         ),
         (
@@ -79,7 +78,7 @@ mod tests {
 
     #[test]
     fn manifest() {
-        let mut manifest: toml::Table = render_manifest(&BTreeMap::from([(
+        let manifest: toml::Table = render_manifest(&BTreeMap::from([(
             "example".into(),
             Dependency::Path {
                 path: "<example-crate>".into(),
@@ -88,7 +87,6 @@ mod tests {
         )]))
         .parse()
         .unwrap();
-        manifest["dependencies"]["rustier"]["path"] = "<rustier>".into();
         insta::with_settings!({
             snapshot_path => "_snapshots/manifest",
             prepend_module_to_snapshot => false,

@@ -1,6 +1,7 @@
 {
   "name": "rustier",
-  "version": "0.0.1",
+  "version": "0.0.0-bootstrap",
+  "publishConfig": { "tag": "bootstrap" },
   "description": "Inline Rust macros for JavaScript and TypeScript builds.",
   "license": "MIT",
   "repository": {
@@ -9,6 +10,7 @@
     "directory": "packages/rustier"
   },
   "type": "module",
+  "imports": { "#server": "./dist/rustier-server.js" },
   "files": ["dist"],
   "exports": {
     ".": "./dist/index.mjs",
@@ -22,9 +24,6 @@
     "build": "pnpm run build:native && pnpm run build:ts",
     "test": "pnpm run build && vitest run",
     "build:release": "pnpm --dir ../../crates/server run build:release && pnpm run build:ts"
-  },
-  "dependencies": {
-    "rustier-server": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
