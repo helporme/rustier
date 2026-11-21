@@ -10,7 +10,7 @@ export interface RustierConfiguration {
   release?: boolean
   procMacros?: boolean
   platform?: Platform
-  crates?: Record<string, { path: string } | { version: string }>
+  crates?: Record<string, ({ path: string } | { version: string }) & { features?: string[] }>
 }
 
 export function toProfileOptions(

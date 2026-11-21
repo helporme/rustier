@@ -41,6 +41,7 @@ pub struct BackendOptions {
 pub struct CrateOptions {
     pub path: Option<String>,
     pub version: Option<String>,
+    pub features: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -158,12 +159,17 @@ impl Server {
                 .unwrap_or_default()
                 .into_iter()
                 .map(|(name, options)| {
-                    let dependency = match options {
-                        Either::A(path)
-                        | Either::B(CrateOptions {
+                    let options = match options {
+                        Either::A(path) => CrateOptions {
                             path: Some(path),
                             version: None,
-                        }) => {
+                            features: None,
+                        },
+                        Either::B(options) => options,
+                    };
+                    let features = options.features.unwrap_or_default();
+                    let dependency = match (options.path, options.version) {
+                        (Some(path), None) => {
                             let path = fs::canonicalize(root.join(path)).map_err(|error| {
                                 Error::from_reason(format!(
                                     "invalid crate path for {name}: {error}"
@@ -171,13 +177,11 @@ impl Server {
                             })?;
                             Dependency::Path {
                                 path: path.to_string_lossy().into_owned(),
+                                features,
                             }
                         }
-                        Either::B(CrateOptions {
-                            path: None,
-                            version: Some(version),
-                        }) => Dependency::Registry { version },
-                        Either::B(_) => {
+                        (None, Some(version)) => Dependency::Registry { version, features },
+                        _ => {
                             return Err(Error::from_reason(format!(
                                 "crate {name} must specify exactly one of path or version"
                             )));
@@ -441,7 +445,7 @@ impl Server {
         for (name, profile) in &self.profiles {
             let mut directories = BTreeMap::new();
             for dependency in profile.crates.values() {
-                let Dependency::Path { path } = dependency else {
+                let Dependency::Path { path, .. } = dependency else {
                     continue;
                 };
                 let output = Command::new("cargo")

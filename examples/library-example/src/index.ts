@@ -1,6 +1,6 @@
 import { rs } from 'rustier';
 
-const vec = rs`vec![1,2,3]`;
+const vec = rs`Ok(vec![1,2,3])`;
 
 rs`
   Vec::<i32>::push(${vec}, 4);

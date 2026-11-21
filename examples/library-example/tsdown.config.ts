@@ -4,7 +4,10 @@ import rustier from "rustier-next";
 export default defineConfig({
   plugins: [
     rustier({
-      backend: { type: "node" },
+      targets: [
+        'aarch64-apple-darwin',
+        { target: 'wasm32-unknown-unknown', loading: 'module' },
+      ],
     }),
   ],
   dts: true,

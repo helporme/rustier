@@ -9,16 +9,20 @@
     "directory": "packages/rustier-next"
   },
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": "./dist/index.mjs"
   },
   "scripts": {
     "build:bootstrap": "pnpm --filter rustier run build",
     "build": "pnpm run build:bootstrap && tsdown",
+    "test": "tsdown --config tests/tsdown.config.ts && node --test .rustier/tests/*.mjs",
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "jsonc-parser": "^3.3.1",
     "rustier": "workspace:*"
   },
   "devDependencies": {

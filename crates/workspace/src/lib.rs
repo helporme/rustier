@@ -28,6 +28,8 @@ pub struct WorkspaceOpts {
     pub features: Vec<String>,
     #[serde(default)]
     pub target: Option<String>,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
 }
 
 impl WorkspaceOpts {
@@ -64,7 +66,7 @@ impl Workspace {
 
         let mut crates = BTreeMap::new();
         for (name, mut dependency) in opts.dependency_crates {
-            if let Dependency::Path { path } = &mut dependency {
+            if let Dependency::Path { path, .. } = &mut dependency {
                 *path = fs::canonicalize(&*path)?
                     .into_os_string()
                     .into_string()
@@ -84,6 +86,11 @@ impl Workspace {
         let config = CargoConfig {
             sysroot: Some(RustLibSource::Discover),
             target: opts.target,
+            extra_env: opts
+                .env
+                .into_iter()
+                .map(|(name, value)| (name, Some(value)))
+                .collect(),
             features: CargoFeatures::Selected {
                 features: opts.features,
                 no_default_features: false,

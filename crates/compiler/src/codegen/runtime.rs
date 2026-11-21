@@ -8,8 +8,19 @@ use crate::{
         },
     },
     db::Db,
+    ir::js::JsProgram,
     ir::runtime::{HandleBorrow, JsType, RsMacro, RsPart, RsType, Runtime},
 };
+
+pub fn runtime_exports(db: &dyn Db, program: JsProgram) -> Vec<String> {
+    program
+        .runtime(db)
+        .macros(db)
+        .into_iter()
+        .filter(|macro_| macro_.is_compilable(db))
+        .map(|macro_| macro_.symbol(db).clone())
+        .collect()
+}
 
 impl<'db> Runtime<'db> {
     /// JavaScript runtime initialization and specialized macro exports.

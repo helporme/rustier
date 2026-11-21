@@ -3,8 +3,16 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum Dependency {
-    Path { path: String },
-    Registry { version: String },
+    Path {
+        path: String,
+        #[serde(default)]
+        features: Vec<String>,
+    },
+    Registry {
+        version: String,
+        #[serde(default)]
+        features: Vec<String>,
+    },
 }
 
 pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
@@ -46,13 +54,20 @@ pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
 
     let dependencies = manifest["dependencies"].as_table_mut().unwrap();
     for (name, dependency) in crates {
-        let (key, value) = match dependency {
-            Dependency::Path { path } => ("path", path),
-            Dependency::Registry { version } => ("version", version),
+        let (key, value, features) = match dependency {
+            Dependency::Path { path, features } => ("path", path, features),
+            Dependency::Registry { version, features } => ("version", version, features),
         };
+        let mut entry = toml::Table::from_iter([(key.into(), value.clone().into())]);
+        if !features.is_empty() {
+            entry.insert(
+                "features".into(),
+                toml::Value::Array(features.iter().cloned().map(toml::Value::String).collect()),
+            );
+        }
         dependencies.insert(
             name.clone(),
-            toml::Value::Table(toml::Table::from_iter([(key.into(), value.clone().into())])),
+            toml::Value::Table(entry),
         );
     }
     manifest.to_string()
@@ -68,6 +83,7 @@ mod tests {
             "example".into(),
             Dependency::Path {
                 path: "<example-crate>".into(),
+                features: vec![],
             },
         )]))
         .parse()

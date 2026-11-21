@@ -38,6 +38,7 @@ pub struct GlueCrate {
 }
 
 /// Resolved settings for one target; environment overrides apply only to its Cargo process.
+#[derive(Clone, serde::Deserialize)]
 pub struct TargetBuild {
     pub target: String,
     pub features: Vec<String>,
@@ -142,7 +143,7 @@ pub fn write_glue_crate(db: &dyn Db, program: JsProgram, opts: GlueOpts) -> io::
     let mut dependencies = BTreeMap::new();
     for (name, dependency) in &opts.dependency_crates {
         let mut dependency = dependency.clone();
-        if let Dependency::Path { path } = &mut dependency {
+        if let Dependency::Path { path, .. } = &mut dependency {
             *path = fs::canonicalize(&*path)?
                 .into_os_string()
                 .into_string()

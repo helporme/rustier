@@ -89,6 +89,9 @@ importers:
 
   packages/rustier-next:
     dependencies:
+      jsonc-parser:
+        specifier: ^3.3.1
+        version: 3.3.1
       rustier:
         specifier: workspace:*
         version: link:../rustier
@@ -2161,6 +2164,9 @@ packages:
 
   json-with-bigint@3.5.12:
     resolution: {integrity: sha512-uwbF/wSSuOgC7qqlq27Xp5B6a2MHVug3t0idZdTqu0JnlFvgJuH7ju+KAk/J06C7GfhoYy2gnb9wz2INqcne7w==}
+
+  jsonc-parser@3.3.1:
+    resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
   keyv@5.6.0:
     resolution: {integrity: sha512-CYDD3SOtsHtyXeEORYRx2qBtpDJFjRTGXUtmNEMGyzYOKj1TE3tycdlho7kA1Ufx9OYWZzg52QFBGALTirzDSw==}
@@ -4690,6 +4696,8 @@ snapshots:
   json-stable-stringify-without-jsonify@1.0.1: {}
 
   json-with-bigint@3.5.12: {}
+
+  jsonc-parser@3.3.1: {}
 
   keyv@5.6.0:
     dependencies:
