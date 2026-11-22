@@ -1,0 +1,35 @@
+{
+  "name": "rustier-bindings-unknown-unknown-unknown",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/helporme/rustier.git",
+    "directory": "packages/rustier"
+  },
+  "exports": {
+    ".": {
+      "bun": "./node.mjs",
+      "node-addons": "./node.mjs",
+      "node": "./node.mjs",
+      "default": "./fallback.mjs"
+    }
+  },
+  "dependencies": {},
+  "optionalDependencies": {
+    "rustier-bindings-darwin-arm64": "0.1.0",
+    "rustier-bindings-darwin-x64": "0.1.0",
+    "rustier-bindings-linux-x64-gnu": "0.1.0",
+    "rustier-bindings-linux-arm64-gnu": "0.1.0",
+    "rustier-bindings-linux-x64-musl": "0.1.0",
+    "rustier-bindings-linux-arm64-musl": "0.1.0",
+    "rustier-bindings-win32-x64-msvc": "0.1.0",
+    "rustier-bindings-win32-arm64-msvc": "0.1.0"
+  },
+  "files": [
+    "node.mjs",
+    "fallback.mjs"
+  ],
+  "rustierGenerated": true
+}

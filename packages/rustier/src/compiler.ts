@@ -18,6 +18,23 @@ export function hostTarget(): string {
   return rs`Ok(rustc_version::version_meta()?.host)`
 }
 
+function targetBuilds(targets: ResolvedTarget[]): string {
+  return JSON.stringify(targets.map(({ target, buildDriver, features, env, release }) => ({
+    target, buildDriver, features, env, release,
+  })))
+}
+
+export function checkDrivers(targets: ResolvedTarget[]): void {
+  const json = targetBuilds(targets)
+  rs`
+    use rustier_workspace::build::{check_build_drivers, TargetBuild};
+    let json: String = ${json};
+    let targets: Vec<TargetBuild> = serde_json::from_str(&json)?;
+    check_build_drivers(&targets)?;
+    Ok(())
+  `
+}
+
 function createBackend(kind: ResolvedTarget['kind'], loading: Loading): unknown {
   const wasm = kind !== 'node'
   const mem64 = kind === 'wasm64'
@@ -57,7 +74,10 @@ export class Compilation {
       dependency_crates: options.crates,
       features: [...new Set(targets.flatMap(target => target.features))],
       target: first.kind === 'node' ? null : first.target,
-      env: first.env,
+      env: {
+        CARGO_TARGET_DIR: process.env.CARGO_TARGET_DIR ?? resolve(options.root, '.rustier/workspace/target'),
+        ...first.env,
+      },
     })
     this.workspace = rs`
       use rustier_workspace::{Workspace, WorkspaceOpts};
@@ -126,7 +146,7 @@ export class Compilation {
   }
 
   prepare(batch: unknown, outDir: string): void {
-    const targets = JSON.stringify(this.targets.map(({ target, features, env, release }) => ({ target, features, env, release })))
+    const targets = targetBuilds(this.targets)
     rs`
       use rustier_workspace::{
           Workspace, WorkspaceOpts, build::{write_glue_crate, GlueCrate, GlueOpts, TargetBuild},

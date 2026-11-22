@@ -1,9 +1,10 @@
 packages:
   - packages/rustier
-  - packages/rustier-next
   - packages/site
   - packages/site-compiler-service
   - crates/server
   - examples/*
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - rustier@0.0.0-bootstrap || 0.1.0-bootstrap || 0.1.0-bootstrap.1

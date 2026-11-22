@@ -1,14 +1,9 @@
 import { defineConfig } from "tsdown";
-import rustier from "rustier-next";
+import rustier from "rustier/tsdown";
 
 export default defineConfig({
   plugins: [
-    rustier({
-      targets: [
-        'aarch64-apple-darwin',
-        { target: 'wasm32-unknown-unknown', loading: 'module' },
-      ],
-    }),
+    rustier(),
   ],
   dts: true,
   sourcemap: true,

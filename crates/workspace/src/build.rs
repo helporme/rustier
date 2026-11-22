@@ -21,7 +21,10 @@ use rustier_compiler::{
     ir::runtime::Runtime,
 };
 
+mod driver;
 mod target;
+
+pub use driver::{BuildDriver, check_build_drivers};
 
 /// Settings for preparing source shared by builds of the same transport.
 pub struct GlueOpts {
@@ -41,6 +44,8 @@ pub struct GlueCrate {
 #[derive(Clone, serde::Deserialize)]
 pub struct TargetBuild {
     pub target: String,
+    #[serde(default, rename = "buildDriver")]
+    pub build_driver: BuildDriver,
     pub features: Vec<String>,
     pub env: BTreeMap<String, String>,
     pub release: bool,
@@ -126,6 +131,7 @@ pub fn build<'db>(
         &glue,
         &TargetBuild {
             target,
+            build_driver: BuildDriver::default(),
             features: opts.features,
             env: BTreeMap::new(),
             release: opts.release,
@@ -221,10 +227,16 @@ pub fn build_glue_crate(
             .push("build-std=std,panic_abort".into());
     }
 
-    let output = cargo.command().envs(&opts.env).output()?;
+    let output = opts
+        .build_driver
+        .command(opts, &cargo)?
+        .stderr(io::stderr())
+        .output()?;
+
     let mut binary = None;
     let mut warnings = Vec::new();
     let mut diagnostics = String::new();
+
     for message in Message::parse_stream(output.stdout.as_slice()) {
         match message? {
             Message::CompilerArtifact(artifact)
@@ -247,16 +259,12 @@ pub fn build_glue_crate(
             _ => {}
         }
     }
-    let stderr = String::from_utf8_lossy(&output.stderr);
+
     if !output.status.success() {
-        diagnostics.push_str(&stderr);
         return Err(BuildError::Cargo {
             status: output.status,
             stderr: diagnostics,
         });
-    }
-    if stderr.lines().any(|line| line.starts_with("warning:")) {
-        warnings.push(stderr.trim().to_owned());
     }
 
     let binary = binary.ok_or(BuildError::MissingArtifact)?;
@@ -331,7 +339,7 @@ pub fn build_glue_crates(requests: &[BuildRequest<'_>], opts: BatchOpts) -> Vec<
         .collect()
 }
 
-fn write_if_changed(path: &Path, contents: &[u8]) -> io::Result<()> {
+pub(super) fn write_if_changed(path: &Path, contents: &[u8]) -> io::Result<()> {
     match fs::read(path) {
         Ok(previous) if previous == contents => Ok(()),
         Ok(_) => fs::write(path, contents),

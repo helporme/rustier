@@ -76,7 +76,7 @@ export async function compilerFingerprint(architecture) {
 		}))
 			visit(name, version);
 	}
-	for (const key of ['packages/rustier', 'crates/server', 'packages/site-compiler-service']) {
+	for (const key of ['crates/server', 'packages/site-compiler-service']) {
 		const importer = (selected.importers[key] = lock.importers[key]);
 		for (const group of ['dependencies', 'devDependencies', 'optionalDependencies'])
 			for (const [name, dependency] of Object.entries(importer[group] ?? {}))
@@ -84,7 +84,6 @@ export async function compilerFingerprint(architecture) {
 	}
 	const hash = createHash('sha256').update(architecture).update(JSON.stringify(selected));
 	for (const name of [
-		'packages/rustier',
 		'crates/server',
 		'crates/compiler',
 		'crates/runtime',

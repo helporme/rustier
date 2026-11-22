@@ -1,7 +1,7 @@
 {
   "name": "rustier",
-  "version": "0.0.1",
-  "description": "Inline Rust macros for JavaScript and TypeScript builds.",
+  "version": "0.1.0",
+  "description": "Rustier plugins implemented using Rustier.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -9,39 +9,33 @@
     "directory": "packages/rustier"
   },
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": "./dist/index.mjs",
-    "./rolldown": "./dist/rolldown.mjs",
-    "./tsdown": "./dist/tsdown.mjs",
-    "./vite": "./dist/vite.mjs"
+    "./tsdown": "./dist/tsdown.mjs"
   },
   "scripts": {
-    "build:native": "pnpm --dir ../../crates/server run build",
-    "build:ts": "tsdown",
-    "build": "pnpm run build:native && pnpm run build:ts",
-    "test": "pnpm run build && vitest run",
-    "build:release": "pnpm --dir ../../crates/server run build:release && pnpm run build:ts"
+    "build": "tsdown",
+    "test": "pnpm run build && vitest run && pnpm --filter library-example run build",
+    "check": "tsc --noEmit",
+    "prepublishOnly": "node ./npm/publish.mjs"
   },
   "dependencies": {
-    "rustier-server": "workspace:*"
+    "jsonc-parser": "^3.3.1",
+    "rustier-bindings-unknown-unknown-unknown": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
     "rolldown": "^1.0.0",
+    "rustier-bootstrap": "npm:rustier@0.1.0-bootstrap.1",
+    "rustier-legacy-tests": "npm:rustier@0.0.0-bootstrap",
     "tsdown": "^0.22.0",
     "typescript": "^6.0.2",
-    "vite": "^8.0.0",
     "vitest": "^4.1.7"
   },
   "peerDependencies": {
-    "rolldown": "^1.0.0",
-    "tsdown": "^0.22.0",
-    "vite": "^8.0.0"
-  },
-  "peerDependenciesMeta": {
-    "vite": { "optional": true },
-    "tsdown": { "optional": true },
-    "rolldown": { "optional": true }
+    "rolldown": "^1.0.0"
   }
 }
