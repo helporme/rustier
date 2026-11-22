@@ -55,8 +55,20 @@
     return __rustier_js_insert(value !== 0);
   }
 
+  function __rustier_js_new_symbol(ptr, len, hasDescription) {
+    return __rustier_js_insert(Symbol(hasDescription ? stringFromMemory(ptr, len) : undefined));
+  }
+
+  function __rustier_js_null() {
+    return __rustier_js_insert(null);
+  }
+
   function __rustier_js_undefined() {
     return __rustier_js_insert(undefined);
+  }
+
+  function __rustier_js_new_object() {
+    return __rustier_js_insert({});
   }
 
   function __rustier_js_type_of(handle) {
@@ -162,7 +174,10 @@
     __rustier_js_new_number,
     __rustier_js_new_string,
     __rustier_js_new_boolean,
+    __rustier_js_new_symbol,
+    __rustier_js_null,
     __rustier_js_undefined,
+    __rustier_js_new_object,
     __rustier_js_type_of,
     __rustier_js_number,
     __rustier_js_boolean,

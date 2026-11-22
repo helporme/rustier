@@ -120,9 +120,32 @@ impl JsEnvHandle {
         })
     }
 
+    pub(crate) fn new_symbol(&self, description: Option<&str>) -> JsValueHandle {
+        JsValueHandle::new(*self, |env, output| {
+            let description = description.map_or(ptr::null_mut(), |text| {
+                call(|result| unsafe {
+                    napi_create_string_utf8(env, text.as_ptr().cast(), text.len() as isize, result)
+                })
+            });
+            unsafe { napi_sys::napi_create_symbol(env, description, output) }
+        })
+    }
+
+    pub(crate) fn null(&self) -> JsValueHandle {
+        JsValueHandle::new(*self, |env, output| unsafe {
+            napi_sys::napi_get_null(env, output)
+        })
+    }
+
     pub(crate) fn undefined(&self) -> JsValueHandle {
         JsValueHandle::new(*self, |env, output| unsafe {
             napi_get_undefined(env, output)
+        })
+    }
+
+    pub(crate) fn new_object(&self) -> JsValueHandle {
+        JsValueHandle::new(*self, |env, output| unsafe {
+            napi_create_object(env, output)
         })
     }
 

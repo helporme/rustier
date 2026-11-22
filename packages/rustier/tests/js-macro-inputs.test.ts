@@ -15,7 +15,10 @@ const placements = [
   },
   {
     name: 'handy-crate',
-    inputAt: (object: object, index: number) => rs`handy_crate::js_input_at(__rustier_env, ${object}, ${index})`,
+    inputAt: (object: object, index: number) => rs`
+      let object: JsValue = ${object};
+      handy_crate::js_input_at(object.env(), object, ${index})
+    `,
   },
 ]
 

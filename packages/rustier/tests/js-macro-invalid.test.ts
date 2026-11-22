@@ -26,7 +26,7 @@ for (const place of ['inline', 'handy-crate']) {
   test(`${place}: invalid JavaScript in js! fails to parse`, () => {
     const { server, profile, result } = place === 'inline'
       ? fixture('js!(const broken = ;)')
-      : fixture('handy_crate::invalid_js(__rustier_env)', ['invalid-js'])
+      : fixture('let context: JsValue = ${null}; handy_crate::invalid_js(context.env())', ['invalid-js'])
     expect(result.diagnostics).toEqual([])
     const source = server.renderJsFfi(profile, './unused.node')
     expect(source).toMatch(/const broken\s*=\s*;/)
@@ -40,7 +40,7 @@ for (const place of ['inline', 'handy-crate']) {
   test(`${place}: rejects a nested rs tagged template inside js!`, () => {
     const { server, profile } = place === 'inline'
       ? fixture('js!(return rs\\`1u32\\`)')
-      : fixture('handy_crate::nested_rs(__rustier_env)', ['nested-rs'])
+      : fixture('let context: JsValue = ${null}; handy_crate::nested_rs(context.env())', ['nested-rs'])
     const result = server.build(profile)
     expect(result.binFfiPath).toBeUndefined()
     expect(result.diagnostics.join('\n')).toMatch(/unknown start of token: [`\\]/)

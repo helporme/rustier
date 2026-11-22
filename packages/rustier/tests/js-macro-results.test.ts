@@ -14,9 +14,19 @@ const placements = [
   },
   {
     name: 'handy-crate',
-    noInputs: () => rs`handy_crate::js_no_inputs().at(__rustier_env)`,
-    effect: (callback: (arg: string) => number) => rs`handy_crate::js_effect(${callback}).at(__rustier_env)`,
-    fail: () => rs`handy_crate::js_throw().at(__rustier_env)`,
+    noInputs: () => rs`
+      let context: JsValue = ${null};
+      handy_crate::js_no_inputs().at(context.env())
+    `,
+    effect: (callback: (arg: string) => number) => rs`
+      let callback: JsValue = ${callback};
+      let env = callback.env();
+      handy_crate::js_effect(callback).at(env)
+    `,
+    fail: () => rs`
+      let context: JsValue = ${null};
+      handy_crate::js_throw().at(context.env())
+    `,
   },
 ]
 

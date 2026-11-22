@@ -450,7 +450,7 @@ mod tests {
                 ("let _: bool = 3; ()", "E0308"),
                 ("missing()", "E0425"),
                 ("macro_rules! bad { () => { missing } } bad!()", "E0425"),
-                ("__rustier_env.null()", "E0599"),
+                ("true.missing_method()", "E0599"),
                 ("fn helper() { let _: bool = 3; } helper()", "E0308"),
                 ("\"borrowed\"", "E0308"),
                 ("&(1, 2)", "E0308"),
