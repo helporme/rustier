@@ -8,43 +8,6 @@ pub use crate::transport::JsValueType;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct JsEnv(JsEnvHandle);
 
-impl JsEnv {
-    /// Creates a JavaScript number.
-    pub fn new_number(&self, value: f64) -> JsValue {
-        self.0.new_number(value).into()
-    }
-
-    /// Creates a JavaScript string containing `value`.
-    pub fn new_string(&self, value: impl AsRef<str>) -> JsValue {
-        self.0.new_string(value.as_ref()).into()
-    }
-
-    /// Creates a unique JavaScript symbol with an optional description.
-    pub fn new_symbol(&self, description: Option<&str>) -> JsValue {
-        self.0.new_symbol(description).into()
-    }
-
-    /// Creates a JavaScript boolean.
-    pub fn new_boolean(&self, value: bool) -> JsValue {
-        self.0.new_boolean(value).into()
-    }
-
-    /// Returns the JavaScript `null` value.
-    pub fn null(&self) -> JsValue {
-        self.0.null().into()
-    }
-
-    /// Returns the JavaScript `undefined` value.
-    pub fn undefined(&self) -> JsValue {
-        self.0.undefined().into()
-    }
-
-    /// Creates an empty JavaScript object.
-    pub fn new_object(&self) -> JsValue {
-        self.0.new_object().into()
-    }
-}
-
 impl From<JsEnvHandle> for JsEnv {
     fn from(handle: JsEnvHandle) -> Self {
         Self(handle)

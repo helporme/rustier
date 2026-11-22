@@ -5,16 +5,16 @@ expression: output
 # Input
 
 ```js
-rs`__rustier_env.new_number(10.0)`
+rs`10.0f64`
 ```
 
 # Result
 
 ```rust
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn __rustier_77482f1a473e0770006a577c25756d113f120e2c083cd5a9a547bfe1f1a22c90(
+pub unsafe extern "C" fn __rustier_591be893cec9f08423beec3b745059a87a5b2595c134411ea21fd2b0755023cf(
     __rustier_env_raw: __RustierEnvRaw,
-) -> u32 {
+) -> f64 {
     let __rustier_env_handle = unsafe {
         __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
     };
@@ -24,11 +24,9 @@ pub unsafe extern "C" fn __rustier_77482f1a473e0770006a577c25756d113f120e2c083cd
         use ::rustier::{JsCallError, JsEnv, JsMacro, JsValue, JsValueType, Key};
         #[allow(unused_imports)]
         use ::rustier_js_proc::__js_in_rs as js;
-        let __rustier_output = (|| -> ::rustier_runtime::JsValue {
-            __rustier_env.new_number(10.0)
-        })();
-        ::rustier_runtime::transport::JsValueHandle::from(__rustier_output)
+        let __rustier_output = (|| -> f64 { 10.0f64 })();
+        __rustier_output
     };
-    __rustier_output.into_raw()
+    __rustier_output
 }
 ```

@@ -2,7 +2,7 @@
 
 use std::{any::Any, error::Error, fmt};
 
-use crate::{JsEnv, JsValue, runtime::rust_handles::RustHandle};
+use crate::{JsEnv, JsValue, runtime::rust_handles::RustHandle, transport::JsEnvHandle};
 
 /// An error from executing a `js!` call. A thrown JavaScript string or an
 /// exception's string `message` is preserved, but not the exception object.
@@ -89,12 +89,12 @@ impl Input {
     /// Converts a primitive in `env` or returns an existing JavaScript value.
     /// `Err(handle)` hands an opaque value to the bridge to construct its `Rs`
     /// object; it does not mean JavaScript threw an exception.
-    pub fn into_value(self, env: JsEnv) -> Result<JsValue, RustHandle> {
+    pub fn into_value(self, env: JsEnvHandle) -> Result<JsValue, RustHandle> {
         match self {
-            Self::Number(n) => Ok(env.new_number(n)),
-            Self::Boolean(b) => Ok(env.new_boolean(b)),
-            Self::Undefined => Ok(env.undefined()),
-            Self::String(s) => Ok(env.new_string(s)),
+            Self::Number(n) => Ok(env.new_number(n).into()),
+            Self::Boolean(b) => Ok(env.new_boolean(b).into()),
+            Self::Undefined => Ok(env.undefined().into()),
+            Self::String(s) => Ok(env.new_string(&s).into()),
             Self::Value(v) => Ok(v),
             Self::Rust(handle) => Err(handle),
         }

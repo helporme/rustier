@@ -268,7 +268,7 @@ mod tests {
     fn raw_template_text() {
         snapshot(
             "raw_template_text",
-            "import { rs } from 'rustier';\nrs`__rustier_env.new_string(r#\"a\\nb\"#)`;\nconst text = `first\nsecond`;",
+            "import { rs } from 'rustier';\nrs`let _ = r#\"a\\nb\"#;`;\nconst text = `first\nsecond`;",
         );
     }
 

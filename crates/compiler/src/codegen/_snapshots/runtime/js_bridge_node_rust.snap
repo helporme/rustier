@@ -254,11 +254,12 @@ fn __rustier_input(
     env: ::rustier_runtime::JsEnv,
     input: ::rustier_runtime::runtime::js_call::Input,
 ) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
-    match input.into_value(env) {
+    let env_handle = __RustierEnvHandle::from(env);
+    match input.into_value(env_handle) {
         Ok(value) => Ok(value),
         Err(handle) => {
-            let pointer = env.new_string(handle.as_raw().to_string());
-            let value = import___rustier_new_handle(env, [pointer])?;
+            let pointer = env_handle.new_string(&handle.as_raw().to_string());
+            let value = import___rustier_new_handle(env, [pointer.into()])?;
             handle.into_raw();
             Ok(value)
         }

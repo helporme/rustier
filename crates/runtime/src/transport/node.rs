@@ -12,14 +12,13 @@ use std::{
 
 use napi_sys::{
     Status, ValueType, napi_call_function, napi_close_handle_scope, napi_create_double,
-    napi_create_object, napi_create_reference, napi_create_string_utf8, napi_create_symbol,
-    napi_create_type_error, napi_delete_reference, napi_env, napi_get_and_clear_last_exception,
-    napi_get_array_length, napi_get_boolean, napi_get_element, napi_get_global,
-    napi_get_named_property, napi_get_null, napi_get_reference_value, napi_get_undefined,
-    napi_get_value_bool, napi_get_value_double, napi_get_value_string_utf8, napi_handle_scope,
-    napi_is_exception_pending, napi_new_instance, napi_open_handle_scope, napi_ref,
-    napi_reference_ref, napi_reference_unref, napi_status, napi_strict_equals, napi_typeof,
-    napi_value, napi_valuetype,
+    napi_create_object, napi_create_reference, napi_create_string_utf8, napi_create_type_error,
+    napi_delete_reference, napi_env, napi_get_and_clear_last_exception, napi_get_array_length,
+    napi_get_boolean, napi_get_element, napi_get_global, napi_get_named_property,
+    napi_get_reference_value, napi_get_undefined, napi_get_value_bool, napi_get_value_double,
+    napi_get_value_string_utf8, napi_handle_scope, napi_is_exception_pending, napi_new_instance,
+    napi_open_handle_scope, napi_ref, napi_reference_ref, napi_reference_unref, napi_status,
+    napi_strict_equals, napi_typeof, napi_value, napi_valuetype,
 };
 
 use super::JsValueType;
@@ -104,7 +103,7 @@ impl JsEnvHandle {
         self.0
     }
 
-    pub fn new_number(&self, value: f64) -> JsValueHandle {
+    pub(crate) fn new_number(&self, value: f64) -> JsValueHandle {
         JsValueHandle::new(*self, |env, output| unsafe {
             napi_create_double(env, value, output)
         })
@@ -116,37 +115,15 @@ impl JsEnvHandle {
         })
     }
 
-    pub fn new_boolean(&self, value: bool) -> JsValueHandle {
+    pub(crate) fn new_boolean(&self, value: bool) -> JsValueHandle {
         JsValueHandle::new(*self, |env, output| unsafe {
             napi_get_boolean(env, value, output)
         })
     }
 
-    pub fn new_symbol(&self, description: Option<&str>) -> JsValueHandle {
-        JsValueHandle::new(*self, |env, output| {
-            let description = description.map_or(ptr::null_mut(), |text| {
-                call(|result| unsafe {
-                    napi_create_string_utf8(env, text.as_ptr().cast(), text.len() as isize, result)
-                })
-            });
-
-            unsafe { napi_create_symbol(env, description, output) }
-        })
-    }
-
-    pub fn null(&self) -> JsValueHandle {
-        JsValueHandle::new(*self, |env, output| unsafe { napi_get_null(env, output) })
-    }
-
-    pub fn undefined(&self) -> JsValueHandle {
+    pub(crate) fn undefined(&self) -> JsValueHandle {
         JsValueHandle::new(*self, |env, output| unsafe {
             napi_get_undefined(env, output)
-        })
-    }
-
-    pub fn new_object(&self) -> JsValueHandle {
-        JsValueHandle::new(*self, |env, output| unsafe {
-            napi_create_object(env, output)
         })
     }
 

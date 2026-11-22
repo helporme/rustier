@@ -6,7 +6,7 @@ expression: output
 
 ```tsx
 import { rs } from 'rustier';
-rs`__rustier_env.new_string(r#"a\nb"#)`;
+rs`let _ = r#"a\nb"#;`;
 const text = `first
 second`;
 ```
@@ -16,7 +16,7 @@ second`;
 ```tsx
 import * as __rustier_ffi from "rustier:runtime";
 import { rs } from 'rustier';
-__rustier_ffi.__rustier_a0d69beb46b85e39f195a03a8886cbf0ce36413124e050d8c8c35b30f77f7da0();
+__rustier_ffi.__rustier_5e28e48f4023829cd0346de22722038dbdabaf46cfd93717c0bf6088c084c53a();
 const text = `first
 second`;
 ```

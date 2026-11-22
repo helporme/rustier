@@ -450,7 +450,7 @@ mod tests {
                 ("let _: bool = 3; ()", "E0308"),
                 ("missing()", "E0425"),
                 ("macro_rules! bad { () => { missing } } bad!()", "E0425"),
-                ("__rustier_env.missing()", "E0599"),
+                ("__rustier_env.null()", "E0599"),
                 ("fn helper() { let _: bool = 3; } helper()", "E0308"),
                 ("\"borrowed\"", "E0308"),
                 ("&(1, 2)", "E0308"),
@@ -465,15 +465,7 @@ mod tests {
                 assert!(!macro_.is_compilable(&db));
             }
 
-            for body in [
-                "()",
-                "true",
-                "42",
-                "42u64",
-                "(1, 2)",
-                "let unused = 1; ()",
-                "__rustier_env.null()",
-            ] {
+            for body in ["()", "true", "42", "42u64", "(1, 2)", "let unused = 1; ()"] {
                 assert!(
                     RsMacro::new(&db, rs, vec![RsPart::Text(body.into())]).is_compilable(&db),
                     "{body}"

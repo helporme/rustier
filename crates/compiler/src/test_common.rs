@@ -24,12 +24,6 @@ const RUNTIME: &str = r#"
                 pub fn strict_eq(&self, other: &Self) -> bool { loop {} }
                 pub fn discard(self) {}
             }
-            impl JsEnv {
-                pub fn new_number(&self, value: f64) -> JsValue { loop {} }
-                pub fn new_string(&self, value: &str) -> JsValue { loop {} }
-                pub fn null(&self) -> JsValue { loop {} }
-                pub fn undefined(&self) -> JsValue { loop {} }
-            }
         }
     }
 "#;

@@ -10,11 +10,8 @@ unsafe extern "C" {
     fn __rustier_js_set_error(ptr: *const u8, len: usize);
     fn __rustier_js_new_number(value: f64) -> u32;
     fn __rustier_js_new_string(ptr: *const u8, len: usize) -> u32;
-    fn __rustier_js_new_symbol(ptr: *const u8, len: usize, has_description: bool) -> u32;
     fn __rustier_js_new_boolean(value: bool) -> u32;
-    fn __rustier_js_null() -> u32;
     fn __rustier_js_undefined() -> u32;
-    fn __rustier_js_new_object() -> u32;
     fn __rustier_js_type_of(handle: u32) -> JsValueType;
     fn __rustier_js_number(handle: u32) -> f64;
     fn __rustier_js_boolean(handle: u32) -> bool;
@@ -72,7 +69,7 @@ impl JsEnvHandle {
         0
     }
 
-    pub fn new_number(&self, value: f64) -> JsValueHandle {
+    pub(crate) fn new_number(&self, value: f64) -> JsValueHandle {
         JsValueHandle(unsafe { __rustier_js_new_number(value) }, PhantomData)
     }
 
@@ -83,29 +80,12 @@ impl JsEnvHandle {
         )
     }
 
-    pub fn new_boolean(&self, value: bool) -> JsValueHandle {
+    pub(crate) fn new_boolean(&self, value: bool) -> JsValueHandle {
         JsValueHandle(unsafe { __rustier_js_new_boolean(value) }, PhantomData)
     }
 
-    pub fn new_symbol(&self, description: Option<&str>) -> JsValueHandle {
-        let text = description.unwrap_or("");
-
-        JsValueHandle(
-            unsafe { __rustier_js_new_symbol(text.as_ptr(), text.len(), description.is_some()) },
-            PhantomData,
-        )
-    }
-
-    pub fn null(&self) -> JsValueHandle {
-        JsValueHandle(unsafe { __rustier_js_null() }, PhantomData)
-    }
-
-    pub fn undefined(&self) -> JsValueHandle {
+    pub(crate) fn undefined(&self) -> JsValueHandle {
         JsValueHandle(unsafe { __rustier_js_undefined() }, PhantomData)
-    }
-
-    pub fn new_object(&self) -> JsValueHandle {
-        JsValueHandle(unsafe { __rustier_js_new_object() }, PhantomData)
     }
 
     pub fn set_error(&self, error: super::TransportError) {

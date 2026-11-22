@@ -100,8 +100,8 @@ impl<'db> Runtime<'db> {
             if self.has_js_handle_inputs(db) {
                 frag!(
                     Err(handle) => {{
-                        let pointer = env.new_string(handle.as_raw().to_string());@
-                        let value = import___rustier_new_handle(env, [pointer])?;@
+                        let pointer = env_handle.new_string(&handle.as_raw().to_string());@
+                        let value = import___rustier_new_handle(env, [pointer.into()])?;@
                         handle.into_raw();@
                         Ok(value)
                     }}
@@ -114,7 +114,8 @@ impl<'db> Runtime<'db> {
         frag!(
             fn __rustier_input(env: ::rustier_runtime::JsEnv, input: ::rustier_runtime::runtime::js_call::Input)
             -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {{
-                match input.into_value(env) {{
+                let env_handle = __RustierEnvHandle::from(env);@
+                match input.into_value(env_handle) {{
                     Ok(value) => Ok(value),@
                     {opaque}
                 }}
@@ -422,6 +423,7 @@ impl<'db> RsMacro<'db> {
                 call.apply(p);
             }
         });
+
         let result = match self.ret_type(db).js() {
             JsType::Undefined => "undefined".to_owned(),
             JsType::RustHandle => frag!(__rustier_new_handle({ result_var })).print(),
@@ -559,7 +561,7 @@ mod tests {
     fn runtime_constant() {
         snapshot(
             "runtime_constant",
-            render(vec![RsPart::Text("__rustier_env.new_number(10.0)".into())]),
+            render(vec![RsPart::Text("10.0f64".into())]),
         );
     }
 
@@ -567,9 +569,7 @@ mod tests {
     fn runtime_multiline_literal() {
         snapshot(
             "runtime_multiline_literal",
-            render(vec![RsPart::Text(
-                "__rustier_env.new_string(r#\"first\nsecond\"#)".into(),
-            )]),
+            render(vec![RsPart::Text("let _ = r#\"first\nsecond\"#;".into())]),
         );
     }
 
@@ -600,7 +600,7 @@ mod tests {
     fn runtime_js_no_inputs() {
         snapshot(
             "runtime_js_no_inputs",
-            render_js(vec![RsPart::Text("__rustier_env.null()".into())]),
+            render_js(vec![RsPart::Text("()".into())]),
         );
     }
 
@@ -638,11 +638,7 @@ mod tests {
         assert!(js.contains("\"./bridge.wasm\""));
         assert!(!js.contains("export{"));
 
-        let changed = JsFile::new(
-            &db,
-            "/second.js",
-            "import { rs } from 'rustier'; rs`__rustier_env.null()`;",
-        );
+        let changed = JsFile::new(&db, "/second.js", "import { rs } from 'rustier'; rs`()`;");
         program.set_files(&mut db).to(vec![first, changed]);
         let runtime = Runtime::new(&db, program, rs);
         assert_eq!(runtime.rs_macros(&db).len(), 2);
