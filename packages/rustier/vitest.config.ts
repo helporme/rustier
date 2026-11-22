@@ -7,9 +7,9 @@ const crates = {
 }
 
 const profiles = {
-  node: { platform: { type: 'node' }, crates },
-  wasm32: { platform: { type: 'wasm', loading: 'node-js', mem64: false }, crates },
-  wasm64: { platform: { type: 'wasm', loading: 'node-js', mem64: true }, crates },
+  node: { platform: { type: 'node' }, crates, procMacros: true },
+  wasm32: { platform: { type: 'wasm', loading: 'node-js', mem64: false }, crates, procMacros: true },
+  wasm64: { platform: { type: 'wasm', loading: 'node-js', mem64: true }, crates, procMacros: true },
 } satisfies Record<string, RustierProfile>
 
 let activeProfile = 'node'

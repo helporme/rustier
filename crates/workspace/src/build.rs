@@ -18,7 +18,7 @@ use rustier_compiler::{
         manifest::{Dependency, render_manifest},
     },
     db::Db,
-    ir::js::JsProgram,
+    ir::runtime::Runtime,
 };
 
 mod target;
@@ -99,7 +99,11 @@ pub enum BuildError {
 }
 
 /// Writes and builds a glue crate.
-pub fn build(db: &dyn Db, program: JsProgram, opts: BuildOpts) -> Result<Artifact, BuildError> {
+pub fn build<'db>(
+    db: &'db dyn Db,
+    runtime: Runtime<'db>,
+    opts: BuildOpts,
+) -> Result<Artifact, BuildError> {
     let target = match &opts.backend {
         TransportBackend::Node(_) => rustc_version::version_meta()?.host,
         TransportBackend::Wasm(wasm) => if wasm.mem64 {
@@ -111,7 +115,7 @@ pub fn build(db: &dyn Db, program: JsProgram, opts: BuildOpts) -> Result<Artifac
     };
     let glue = write_glue_crate(
         db,
-        program,
+        runtime,
         GlueOpts {
             out_dir: opts.out_dir,
             backend: opts.backend,
@@ -139,7 +143,11 @@ pub fn remove_build_iteration(out_dir: &Path, iteration: u32) -> io::Result<()> 
 }
 
 /// Generates source once. Node targets share `node/`; Wasm pointer widths have separate crates.
-pub fn write_glue_crate(db: &dyn Db, program: JsProgram, opts: GlueOpts) -> io::Result<GlueCrate> {
+pub fn write_glue_crate<'db>(
+    db: &'db dyn Db,
+    runtime: Runtime<'db>,
+    opts: GlueOpts,
+) -> io::Result<GlueCrate> {
     let mut dependencies = BTreeMap::new();
     for (name, dependency) in &opts.dependency_crates {
         let mut dependency = dependency.clone();
@@ -155,7 +163,7 @@ pub fn write_glue_crate(db: &dyn Db, program: JsProgram, opts: GlueOpts) -> io::
     }
 
     let manifest = render_manifest(&dependencies);
-    let source = program.runtime(db).render_rs_ffi(db, &opts.backend);
+    let source = runtime.render_rs_ffi(db, &opts.backend);
     fs::create_dir_all(&opts.out_dir)?;
     let out_dir = fs::canonicalize(&opts.out_dir)?;
     let directory = out_dir.join(match &opts.backend {

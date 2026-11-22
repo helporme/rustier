@@ -77,7 +77,7 @@ pub(super) fn load(
     }
 
     let folders = ProjectFolders::new(std::slice::from_ref(&workspace), &[], None);
-    let (source_db, vfs, _) = load_workspace(
+    let (mut source_db, vfs, server) = load_workspace(
         workspace.clone(),
         &config.extra_env,
         &LoadCargoConfig {
@@ -99,13 +99,15 @@ pub(super) fn load(
         ))
         .ok_or("analysis crate root was not loaded")?
         .0;
-    let (crate_graph, _) = workspace.to_crate_graph(
+    let (crate_graph, paths) = workspace.to_crate_graph(
         &mut |path| {
             vfs.file_id(&VfsPath::from(path.to_path_buf()))
                 .map(|(id, _)| id)
         },
         &config.extra_env,
     );
+    rustier_workspace::js_expansion::install(&mut source_db, server.as_ref(), &crate_graph, paths);
+
     let template = crate_graph
         .iter()
         .find(|id| crate_graph[*id].basic.root_file_id == root_file)

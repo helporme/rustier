@@ -1,0 +1,174 @@
+---
+source: tests/js_bridge_codegen.rs
+expression: "format!(\"# Input\\n\\n```js\\n{input}\\n```\\n\\n# Generated Rust\\n\\n```rust\\n{rust}```\")"
+---
+# Input
+
+```js
+import { rs } from "rustier";
+export const makePair = x => rs`
+    let x: u32 = ${x};
+    js!(return [@{x}, @{vec![x]}])
+`;
+```
+
+# Generated Rust
+
+```rust
+use ::rustier_runtime::transport::{
+    JsEnvHandle as __RustierEnvHandle, JsValueHandle as __RustierValueHandle,
+};
+type __RustierEnvRaw = u32;
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_drop_handle(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: usize,
+) -> () {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = __rustier_raw_0;
+    let __rustier_output = {
+        unsafe {
+            ::rustier_runtime::runtime::rust_handles::RustHandle::drop_raw(
+                __rustier_handle_0,
+            );
+        }
+    };
+    ()
+}
+fn import___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331<
+    const N: usize,
+>(
+    _env: ::rustier_runtime::JsEnv,
+    args: [::rustier_runtime::JsValue; N],
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    #[link(wasm_import_module = "rustier:js")]
+    unsafe extern "C" {
+        fn call___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+            args: *const u32,
+            count: usize,
+            failed: *mut u32,
+        ) -> u32;
+    }
+    let handles = args.map(__RustierValueHandle::from);
+    let raw = handles.each_ref().map(__RustierValueHandle::as_raw);
+    let mut failed = 0;
+    let result = unsafe {
+        __RustierValueHandle::from_raw(
+            call___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+                raw.as_ptr(),
+                N,
+                &mut failed,
+            ),
+        )
+    };
+    if failed == 0 {
+        Ok(result.into())
+    } else {
+        Err(
+            ::rustier_runtime::JsCallError::from(
+                ::rustier_runtime::JsValue::from(result),
+            ),
+        )
+    }
+}
+fn import___rustier_new_handle<const N: usize>(
+    _env: ::rustier_runtime::JsEnv,
+    args: [::rustier_runtime::JsValue; N],
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    #[link(wasm_import_module = "rustier:js")]
+    unsafe extern "C" {
+        fn call___rustier_new_handle(
+            args: *const u32,
+            count: usize,
+            failed: *mut u32,
+        ) -> u32;
+    }
+    let handles = args.map(__RustierValueHandle::from);
+    let raw = handles.each_ref().map(__RustierValueHandle::as_raw);
+    let mut failed = 0;
+    let result = unsafe {
+        __RustierValueHandle::from_raw(
+            call___rustier_new_handle(raw.as_ptr(), N, &mut failed),
+        )
+    };
+    if failed == 0 {
+        Ok(result.into())
+    } else {
+        Err(
+            ::rustier_runtime::JsCallError::from(
+                ::rustier_runtime::JsValue::from(result),
+            ),
+        )
+    }
+}
+fn __rustier_input(
+    env: ::rustier_runtime::JsEnv,
+    input: ::rustier_runtime::runtime::js_call::Input,
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    match input.into_value(env) {
+        Ok(value) => Ok(value),
+        Err(handle) => {
+            let pointer = env.new_string(handle.as_raw().to_string());
+            let value = import___rustier_new_handle(env, [pointer])?;
+            handle.into_raw();
+            Ok(value)
+        }
+    }
+}
+#[unsafe(no_mangle)]
+pub extern "Rust" fn __rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+    env: ::rustier_runtime::JsEnv,
+    arg_0: ::rustier_runtime::runtime::js_call::Input,
+    arg_1: ::rustier_runtime::runtime::js_call::Input,
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    import___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+        env,
+        [__rustier_input(env, arg_0)?, __rustier_input(env, arg_1)?],
+    )
+}
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c(
+    __rustier_env_raw: __RustierEnvRaw,
+    __rustier_raw_0: f64,
+) -> u32 {
+    let __rustier_env_handle = unsafe {
+        __RustierEnvHandle::from_raw(__rustier_env_raw as usize)
+    };
+    let __rustier_handle_0 = __rustier_raw_0;
+    let __rustier_output = {
+        let __rustier_env = ::rustier_runtime::JsEnv::from(__rustier_env_handle);
+        #[allow(unused_imports)]
+        use ::rustier::{JsCallError, JsEnv, JsMacro, JsValue, JsValueType, Key};
+        #[allow(unused_imports)]
+        use ::rustier_js_proc::__js_in_rs as js;
+        let __rustier_arg_0 = (__rustier_handle_0) as u32;
+        let __rustier_output = (|| -> ::std::result::Result<
+            ::rustier_runtime::JsValue,
+            _,
+        > {
+            let x: u32 = __rustier_arg_0;
+            js!(return [@ { x }, @ { vec![x] }])
+        })();
+        __rustier_output
+            .map(|__rustier_output| ::rustier_runtime::transport::JsValueHandle::from(
+                __rustier_output,
+            ))
+            .map_err(|error| {
+                let error: ::std::boxed::Box<
+                    dyn ::std::error::Error + Send + Sync + 'static,
+                > = error.into();
+                ::rustier_runtime::transport::TransportError::Dynamic(error.to_string())
+            })
+    };
+    let __rustier_output = match __rustier_output {
+        Ok(value) => value,
+        Err(error) => {
+            __rustier_env_handle.set_error(error);
+            return ::std::default::Default::default();
+        }
+    };
+    __rustier_output.into_raw()
+}
+```

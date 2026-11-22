@@ -15,7 +15,7 @@ fn main() {
     assert!(output.status.success());
     let sysroot = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
     let library = sysroot.join("lib/rustlib/src/rust/library");
-    let aux = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("../../crates/runtime");
+    let crates = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("../../crates");
     let destination = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let mut generated = File::create(destination.join("sources.rs")).unwrap();
 
@@ -24,7 +24,9 @@ fn main() {
         (library.join("core/src"), "/core/src"),
         (library.join("alloc/src"), "/alloc/src"),
         (library.join("std/src"), "/std/src"),
-        (aux.join("src"), "/aux/src"),
+        (crates.join("runtime/src"), "/rustier_runtime/src"),
+        (crates.join("js-proc/src"), "/rustier_js_proc/src"),
+        (crates.join("rustier/src"), "/rustier/src"),
     ] {
         let mut files = Vec::new();
         collect_sources(&root, &mut files);

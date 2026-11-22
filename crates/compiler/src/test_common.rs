@@ -1,14 +1,20 @@
 use ra_ap_base_db::{
-    Crate, CrateGraphBuilder, CrateOrigin, CrateWorkspaceData, DependencyBuilder, FileChange,
-    SourceRoot,
+    CrateGraphBuilder, CrateOrigin, CrateWorkspaceData, DependencyBuilder, FileChange, SourceRoot,
 };
 use ra_ap_syntax::Edition;
 use ra_ap_vfs::{AbsPathBuf, FileId, VfsPath, file_set::FileSet};
 use triomphe::Arc;
 
-use crate::{db::RootDatabase, ir::runtime::RuntimeAnalysis};
+use crate::{db::RootDatabase, ir::rs::RsProgram};
 
 const RUNTIME: &str = r#"
+    pub use runtime::js::{JsEnv, JsValue};
+    pub struct JsCallError;
+    pub trait JsMacro {}
+    pub enum JsValueType {}
+    pub enum Key {}
+    #[macro_export]
+    macro_rules! __js_in_rs { () => { () }; }
     pub mod runtime {
         pub mod js {
             pub struct JsValue;
@@ -28,26 +34,17 @@ const RUNTIME: &str = r#"
     }
 "#;
 
-pub(super) fn database() -> RootDatabase {
-    let mut db = RootDatabase::default();
-    let template = template(&mut db, "");
-    RuntimeAnalysis::set(&mut db, template);
-
-    db
+pub(super) fn database() -> (RootDatabase, RsProgram) {
+    let (db, [rs]) = programs([""]);
+    (db, rs)
 }
 
-pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
-    let root_file = FileId::from_raw(0);
+pub(super) fn programs<const N: usize>(dependencies: [&str; N]) -> (RootDatabase, [RsProgram; N]) {
+    let mut db = RootDatabase::default();
     let aux_file = FileId::from_raw(1);
-    let dep_file = FileId::from_raw(2);
     let std_file = FileId::from_raw(3);
     let mut files = FileSet::default();
-    files.insert(
-        root_file,
-        VfsPath::new_virtual_path("/analysis/lib.rs".into()),
-    );
     files.insert(aux_file, VfsPath::new_virtual_path("/aux/lib.rs".into()));
-    files.insert(dep_file, VfsPath::new_virtual_path("/dep/lib.rs".into()));
     files.insert(std_file, VfsPath::new_virtual_path("/std/lib.rs".into()));
 
     let mut graph = CrateGraphBuilder::default();
@@ -78,42 +75,59 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
         repo: None,
         name: None,
     };
-    let root = add_crate(root_file, local.clone());
     let aux = add_crate(aux_file, local.clone());
-    let dep = add_crate(dep_file, local);
     let std = add_crate(
         std_file,
         CrateOrigin::Lang(ra_ap_base_db::LangCrateOrigin::Std),
     );
 
-    for crate_ in [root, dep] {
+    let mut change = FileChange::default();
+    let pairs: [_; N] = std::array::from_fn(|i| {
+        let root_file = FileId::from_raw(4 + i as u32 * 2);
+        let dep_file = FileId::from_raw(5 + i as u32 * 2);
+        files.insert(
+            root_file,
+            VfsPath::new_virtual_path(format!("/analysis{i}/lib.rs")),
+        );
+        files.insert(
+            dep_file,
+            VfsPath::new_virtual_path(format!("/dep{i}/lib.rs")),
+        );
+        change.change_file(root_file, Some(String::new()));
+        change.change_file(dep_file, Some(dependencies[i].into()));
+        (
+            add_crate(root_file, local.clone()),
+            add_crate(dep_file, local.clone()),
+        )
+    });
+    for (root, dep) in pairs {
+        for crate_ in [root, dep] {
+            graph
+                .add_dep(
+                    crate_,
+                    DependencyBuilder::new(ra_ap_base_db::CrateName::new("std").unwrap(), std),
+                )
+                .unwrap();
+        }
+
+        for name in ["rustier", "rustier_runtime", "rustier_js_proc"] {
+            graph
+                .add_dep(
+                    root,
+                    DependencyBuilder::new(ra_ap_base_db::CrateName::new(name).unwrap(), aux),
+                )
+                .unwrap();
+        }
         graph
             .add_dep(
-                crate_,
-                DependencyBuilder::new(ra_ap_base_db::CrateName::new("std").unwrap(), std),
+                root,
+                DependencyBuilder::new(ra_ap_base_db::CrateName::new("dep").unwrap(), dep),
             )
             .unwrap();
     }
-
-    graph
-        .add_dep(
-            root,
-            DependencyBuilder::new(ra_ap_base_db::CrateName::new("rustier").unwrap(), aux),
-        )
-        .unwrap();
-    graph
-        .add_dep(
-            root,
-            DependencyBuilder::new(ra_ap_base_db::CrateName::new("dep").unwrap(), dep),
-        )
-        .unwrap();
-
-    let mut change = FileChange::default();
     change.set_roots(vec![SourceRoot::new_local(files)]);
     change.set_crate_graph(graph);
-    change.change_file(root_file, Some(String::new()));
     change.change_file(aux_file, Some(RUNTIME.into()));
-    change.change_file(dep_file, Some(dependency.into()));
     change.change_file(
         std_file,
         Some(
@@ -123,5 +137,7 @@ pub(super) fn template(db: &mut RootDatabase, dependency: &str) -> Crate {
         ),
     );
 
-    change.apply(db).unwrap()[&root]
+    let crates = change.apply(&mut db).unwrap();
+    let programs = pairs.map(|(root, _)| RsProgram::new(&db, crates[&root]));
+    (db, programs)
 }

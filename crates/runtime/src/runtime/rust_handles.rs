@@ -50,6 +50,12 @@ impl RustHandle {
         }))))
     }
 
+    /// Borrows the allocation's address without transferring ownership. Unlike
+    /// [`Self::into_raw`], this does not keep the allocation alive.
+    pub fn as_raw(&self) -> usize {
+        Rc::as_ptr(&self.0) as usize
+    }
+
     pub fn into_raw(self) -> usize {
         Rc::into_raw(self.0) as usize
     }

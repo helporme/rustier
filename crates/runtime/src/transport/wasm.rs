@@ -119,6 +119,12 @@ impl JsEnvHandle {
 pub struct JsValueHandle(u32, PhantomData<Rc<()>>);
 
 impl JsValueHandle {
+    /// Borrows the value's slot in this Wasm instance without transferring it
+    /// to JavaScript. The handle must stay alive while the slot is in use.
+    pub fn as_raw(&self) -> u32 {
+        self.0
+    }
+
     pub fn env(&self) -> JsEnvHandle {
         JsEnvHandle(PhantomData)
     }

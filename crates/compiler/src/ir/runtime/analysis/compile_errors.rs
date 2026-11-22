@@ -436,14 +436,14 @@ mod tests {
         diag::Theme,
         ir::{
             js::{JsFile, JsProgram},
-            runtime::{RsMacro, RsPart, RuntimeAnalysis},
+            runtime::{RsMacro, RsPart, RsType, Runtime},
         },
-        test_common::{database, template},
+        test_common::{database, programs},
     };
 
     #[test]
     fn checks_syntax_types_resolution_and_bridge_return_types() {
-        let db = database();
+        let (db, rs) = database();
         ra_ap_hir::attach_db(&db, || {
             for (body, code) in [
                 ("let = ;", "syntax-error"),
@@ -455,7 +455,7 @@ mod tests {
                 ("\"borrowed\"", "E0308"),
                 ("&(1, 2)", "E0308"),
             ] {
-                let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+                let macro_ = RsMacro::new(&db, rs, vec![RsPart::Text(body.into())]);
                 let errors = macro_.check_compile_errors(&db).as_ref().expect(body);
 
                 assert!(
@@ -475,7 +475,7 @@ mod tests {
                 "__rustier_env.null()",
             ] {
                 assert!(
-                    RsMacro::new(&db, vec![RsPart::Text(body.into())]).is_compilable(&db),
+                    RsMacro::new(&db, rs, vec![RsPart::Text(body.into())]).is_compilable(&db),
                     "{body}"
                 );
             }
@@ -484,7 +484,7 @@ mod tests {
 
     #[test]
     fn errors_are_mapped_per_occurrence_in_utf8_bytes() {
-        let db = database();
+        let (db, rs) = database();
         ra_ap_hir::attach_db(&db, || {
             let first = JsFile::new(
                 &db,
@@ -497,9 +497,9 @@ mod tests {
                 "import { rs } from 'rustier';\nrs`missing`;",
             );
             let program = JsProgram::new(&db, vec![first, second]);
-            let diagnostics = program.check(&db);
-
-            assert_eq!(program.runtime(&db).macros(&db).len(), 1);
+            let runtime = Runtime::new(&db, program, rs);
+            let diagnostics = runtime.check(&db);
+            assert_eq!(runtime.rs_macros(&db).len(), 1);
             assert_eq!(diagnostics.len(), 3);
             for (diagnostic, (file, offset)) in diagnostics.iter().zip([
                 (first, first.contents(&db).find("missing").unwrap()),
@@ -515,17 +515,17 @@ mod tests {
                 assert!(rendered.contains(file.module_id(&db)));
                 assert!(!rendered.contains("__rustier_arg"));
             }
-            assert!(diagnostics == program.check(&db));
+            assert!(diagnostics == runtime.check(&db));
         });
     }
 
     #[test]
     fn unknown_inference_error_labels_the_macro() {
-        let db = database();
+        let (db, rs) = database();
         ra_ap_hir::attach_db(&db, || {
             let source = "import { rs } from 'rustier'; const café = true;\nrs`${café} + 3`;";
             let file = JsFile::new(&db, "/input.ts", source);
-            let diagnostics = JsProgram::new(&db, vec![file]).check(&db);
+            let diagnostics = Runtime::new(&db, JsProgram::new(&db, vec![file]), rs).check(&db);
 
             assert_eq!(diagnostics.len(), 1);
             let labels: Vec<_> = diagnostics[0].inner.labels().unwrap().collect();
@@ -548,7 +548,7 @@ mod tests {
 
     #[test]
     fn parsing_and_compile_diagnostics_are_both_accumulated() {
-        let db = database();
+        let (db, rs) = database();
         ra_ap_hir::attach_db(&db, || {
             let parse_error = JsFile::new(&db, "/parse.ts", "const = ;");
             let rust_error = JsFile::new(
@@ -557,7 +557,7 @@ mod tests {
                 "import { rs } from 'rustier'; rs`unknown`;",
             );
             let program = JsProgram::new(&db, vec![parse_error, rust_error]);
-            let messages = program
+            let messages = Runtime::new(&db, program, rs)
                 .check(&db)
                 .iter()
                 .map(|d| d.render(Theme::UnicodeNoColor).unwrap())
@@ -570,35 +570,66 @@ mod tests {
     }
 
     #[test]
-    fn source_and_dependency_changes_invalidate_checks() {
-        let mut db = database();
+    fn source_changes_invalidate_checks() {
+        let (mut db, rs) = database();
         let file = JsFile::new(
             &db,
             "/input.ts",
             "import { rs } from 'rustier'; rs`missing`;",
         );
         let program = JsProgram::new(&db, vec![file]);
-        ra_ap_hir::attach_db(&db, || assert_eq!(program.check(&db).len(), 1));
+        ra_ap_hir::attach_db(&db, || {
+            assert_eq!(Runtime::new(&db, program, rs).check(&db).len(), 1)
+        });
 
         let fixed = JsFile::new(&db, "/input.ts", "import { rs } from 'rustier'; rs`()`;");
         program.set_files(&mut db).to(vec![fixed]);
-        ra_ap_hir::attach_db(&db, || assert!(program.check(&db).is_empty()));
-
-        let body = vec![RsPart::Text("dep::value()".into())];
-        let initial = template(&mut db, "pub fn value() -> &'static str { \"borrowed\" }");
-        RuntimeAnalysis::set(&mut db, initial);
         ra_ap_hir::attach_db(&db, || {
-            assert!(!RsMacro::new(&db, body.clone()).is_compilable(&db))
+            assert!(Runtime::new(&db, program, rs).check(&db).is_empty())
         });
+    }
 
-        let fixed = template(&mut db, "pub fn value() -> u32 { 42 }");
-        RuntimeAnalysis::set(&mut db, fixed);
-        ra_ap_hir::attach_db(&db, || assert!(RsMacro::new(&db, body).is_compilable(&db)));
+    #[test]
+    fn two_rust_roots_analyze_the_same_source_independently() {
+        let (db, [a, b]) = programs([
+            "pub fn value() -> u32 { 1 }",
+            "pub fn value() -> bool { true }",
+        ]);
+        ra_ap_hir::attach_db(&db, || {
+            let file = JsFile::new(
+                &db,
+                "/shared.ts",
+                "import {rs} from 'rustier'; rs`dep::value()`; rs`let _: u32 = dep::value();`;",
+            );
+            let program = JsProgram::new(&db, vec![file]);
+            let module = file.module(&db);
+            let src = module.macros(&db)[0];
+            let a = Runtime::new(&db, program, a);
+            let b = Runtime::new(&db, program, b);
+            let first = a.lower_rs(&db, src);
+            let second = b.lower_rs(&db, src);
+            assert!(first != second);
+            assert_eq!(first.symbol(&db), second.symbol(&db));
+            for (runtime, ty, errors) in [
+                (a, RsType::U32, 0),
+                (b, RsType::Bool, 1),
+                (a, RsType::U32, 0),
+            ] {
+                assert_eq!(runtime.lower_rs(&db, src).ret_type(&db), ty);
+                assert_eq!(runtime.check(&db).len(), errors);
+                assert_eq!(
+                    runtime
+                        .render_transformed(&db, module, "./ffi".into())
+                        .contains("throw new Error"),
+                    errors != 0
+                );
+            }
+        });
     }
 
     #[test]
     fn invalid_macros_are_absent_from_both_bridges_and_throw_in_js() {
-        let db = database();
+        let (db, rs) = database();
         ra_ap_hir::attach_db(&db, || {
             let file = JsFile::new(
                 &db,
@@ -610,13 +641,12 @@ export const nested = () => rs`${rs`missing`}`;
 "#,
             );
             let program = JsProgram::new(&db, vec![file]);
-            let runtime = program.runtime(&db);
-            let transformed = file
-                .module(&db)
-                .render_transformed(&db, "./runtime.mjs".into());
+            let runtime = Runtime::new(&db, program, rs);
+            let transformed =
+                runtime.render_transformed(&db, file.module(&db), "./runtime.mjs".into());
             let allocator = oxc_allocator::Allocator::default();
 
-            assert_eq!(program.check(&db).len(), 2);
+            assert_eq!(Runtime::new(&db, program, rs).check(&db).len(), 2);
             assert_eq!(transformed.matches("throw new Error(").count(), 2);
             assert!(
                 oxc_parser::Parser::new(&allocator, transformed, oxc_span::SourceType::mjs())
@@ -635,7 +665,7 @@ export const nested = () => rs`${rs`missing`}`;
                 let js = runtime.render_js_ffi(&db, &backend, &"./bridge".into());
                 syn::parse_file(&rust).unwrap();
 
-                for macro_ in runtime.macros(&db) {
+                for macro_ in runtime.rs_macros(&db) {
                     let valid = macro_.is_compilable(&db);
                     assert_eq!(rust.contains(macro_.symbol(&db)), valid);
                     assert_eq!(js.contains(macro_.symbol(&db)), valid);
@@ -646,13 +676,13 @@ export const nested = () => rs`${rs`missing`}`;
 
     #[test]
     fn concurrent_check_queries_remain_isolated() {
-        let db = database();
+        let (db, rs) = database();
         std::thread::scope(|scope| {
             for body in ["missing", "()", "let _: bool = 42;"] {
                 let db = db.clone();
                 scope.spawn(move || {
                     ra_ap_hir::attach_db(&db, || {
-                        let macro_ = RsMacro::new(&db, vec![RsPart::Text(body.into())]);
+                        let macro_ = RsMacro::new(&db, rs, vec![RsPart::Text(body.into())]);
                         assert_eq!(macro_.is_compilable(&db), body == "()");
                     })
                 });

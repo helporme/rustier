@@ -1,6 +1,14 @@
 //! Low-level handles for Node.js environments and values.
 
-use std::{ffi::CStr, marker::PhantomData, ptr, rc::Rc};
+use std::{
+    any::TypeId,
+    cmp::Ordering,
+    ffi::{CStr, c_void},
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+    ptr,
+    rc::Rc,
+};
 
 use napi_sys::{
     Status, ValueType, napi_call_function, napi_close_handle_scope, napi_create_double,
@@ -17,15 +25,82 @@ use napi_sys::{
 use super::JsValueType;
 
 /// A non-owning handle to a Node-API environment.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
-pub struct JsEnvHandle(usize, PhantomData<Rc<()>>);
+#[derive(Debug, Clone, Copy)]
+pub struct JsEnvHandle(usize, *mut c_void, PhantomData<Rc<()>>);
+
+impl PartialEq for JsEnvHandle {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+impl Eq for JsEnvHandle {}
+impl PartialOrd for JsEnvHandle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for JsEnvHandle {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+impl Hash for JsEnvHandle {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+#[repr(C)]
+struct CallbackData<T> {
+    kind: TypeId,
+    state: T,
+}
 
 impl JsEnvHandle {
+    /// Allocates stable callback data for the addon's entry pointsh.
+    pub fn allocate_callback_data<T: 'static>(&self, state: T) -> Result<*mut c_void, napi_status> {
+        unsafe extern "C" fn cleanup<T>(data: *mut c_void) {
+            drop(unsafe { Box::from_raw(data.cast::<CallbackData<T>>()) });
+        }
+
+        let data = Box::into_raw(Box::new(CallbackData {
+            kind: TypeId::of::<T>(),
+            state,
+        }))
+        .cast();
+        let status = unsafe {
+            napi_sys::napi_add_env_cleanup_hook(self.0 as napi_env, Some(cleanup::<T>), data)
+        };
+        if status != Status::napi_ok {
+            unsafe { cleanup::<T>(data) };
+            return Err(status);
+        }
+        Ok(data)
+    }
+
+    /// Borrows the cached callback data.
+    ///
+    /// # Safety
+    /// The borrow must end before Node starts cleaning up this environment.
+    pub unsafe fn callback_data<T: 'static>(&self) -> Option<&T> {
+        // All CallbackData allocations start with the same repr(C) type tag.
+        let kind = unsafe { self.1.cast::<TypeId>().as_ref() }?;
+        (*kind == TypeId::of::<T>()).then(|| unsafe { &(*self.1.cast::<CallbackData<T>>()).state })
+    }
+
+    /// # Safety
+    /// `raw` must be a live Node environment on its owning thread; `data` must
+    /// be null or callback data allocated for it by `allocate_callback_data`.
+    /// Neither handle may be used after environment cleanup begins.
+    pub unsafe fn from_callback(raw: usize, data: *mut c_void) -> Self {
+        Self(raw, data, PhantomData)
+    }
+
     /// # Safety
     ///
     /// `raw` must be a live Node-API environment on the current thread.
     pub unsafe fn from_raw(raw: usize) -> Self {
-        Self(raw, PhantomData)
+        Self(raw, ptr::null_mut(), PhantomData)
     }
 
     pub fn into_raw(self) -> usize {
@@ -112,6 +187,65 @@ pub struct JsValueHandle {
     _marker: PhantomData<Rc<()>>,
 }
 
+/// A strong reference to a generated JavaScript function, bound once per addon.
+pub struct NodeFunction {
+    raw: napi_ref,
+    env: JsEnvHandle,
+}
+
+impl NodeFunction {
+    /// Roots `value` directly as a function, without a JavaScript wrapper object.
+    pub fn bind(value: JsValueHandle) -> Result<Self, super::TransportError> {
+        value.with_value(|env, function| {
+            if call(|out| unsafe { napi_typeof(env, function, out) }) != ValueType::napi_function {
+                return Err(super::TransportError::Static(
+                    "Expected a JavaScript function import",
+                ));
+            }
+            let raw = call(|out| unsafe { napi_create_reference(env, function, 1, out) });
+            Ok(Self {
+                raw,
+                env: value.env,
+            })
+        })
+    }
+
+    /// Calls the bound function with `undefined` as its receiver. The raw
+    /// function and argument values live only within this call's handle scope.
+    pub fn call<const N: usize>(
+        &self,
+        args: [JsValueHandle; N],
+    ) -> Result<JsValueHandle, JsValueHandle> {
+        let env = self.env.0 as napi_env;
+        let _scope = HandleScope {
+            env,
+            raw: call(|out| unsafe { napi_open_handle_scope(env, out) }),
+        };
+        let mut raw = [ptr::null_mut(); N];
+        for (slot, arg) in raw.iter_mut().zip(&args) {
+            if arg.env.0 != self.env.0 {
+                return Err(property_error(
+                    self.env,
+                    "JsValue belongs to another JavaScript environment",
+                ));
+            }
+            *slot = arg.value(env);
+        }
+        let function = call(|out| unsafe { napi_get_reference_value(env, self.raw, out) });
+        let this = call(|out| unsafe { napi_get_undefined(env, out) });
+        let result = checked(self.env, |out| unsafe {
+            napi_call_function(env, this, function, N, raw.as_ptr(), out)
+        })?;
+        Ok(unsafe { JsValueHandle::from_napi_value(result as usize, self.env) })
+    }
+}
+
+impl Drop for NodeFunction {
+    fn drop(&mut self) {
+        unsafe { napi_delete_reference(self.env.0 as napi_env, self.raw) };
+    }
+}
+
 impl JsValueHandle {
     fn new(js: JsEnvHandle, create: impl FnOnce(napi_env, *mut napi_value) -> napi_status) -> Self {
         let env = js.into_raw() as napi_env;
@@ -136,7 +270,9 @@ impl JsValueHandle {
         // Define an own data property rather than invoking a possible inherited
         // setter on Object.prototype.
         let status = unsafe { napi_sys::napi_define_properties(env, wrapper, 1, &property) };
-        assert_eq!(status, Status::napi_ok);
+        if status != Status::napi_ok {
+            panic!("Could not define the JavaScript value wrapper: Node-API status {status}");
+        }
         let reference = call(|output| unsafe { napi_create_reference(env, wrapper, 1, output) });
 
         Self {
@@ -478,8 +614,8 @@ impl JsValueHandle {
         self.into_raw_parts().0
     }
 
-    pub fn into_raw_parts(self) -> (usize, usize) {
-        let parts = (self.raw as usize, self.env.into_raw());
+    pub fn into_raw_parts(self) -> (usize, JsEnvHandle) {
+        let parts = (self.raw as usize, self.env);
 
         std::mem::forget(self);
 
@@ -491,10 +627,10 @@ impl JsValueHandle {
     /// `raw` must come from [`Self::into_raw`] or [`Self::into_raw_parts`], with
     /// the matching, live `env`. Each transferred owner may be reconstructed
     /// only once, on the environment's JavaScript thread.
-    pub unsafe fn from_raw_parts(raw: usize, env: usize) -> Self {
+    pub unsafe fn from_raw_parts(raw: usize, env: JsEnvHandle) -> Self {
         Self {
             raw: raw as napi_ref,
-            env: unsafe { JsEnvHandle::from_raw(env) },
+            env,
             _marker: PhantomData,
         }
     }

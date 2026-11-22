@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 compiler = { package = "rustier_compiler", path = "../compiler" }
+rustier_workspace = { path = "../workspace" }
 salsa = "=0.27.2"
 ra_ap_load-cargo = "=0.0.345"
 ra_ap_project_model = "=0.0.345"

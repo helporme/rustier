@@ -16,7 +16,12 @@ pub enum Dependency {
 }
 
 pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
-    let aux = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../runtime"); // FIXME: env
+    let crates_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let builtin = [
+        ("rustier", "rustier"),
+        ("rustier_runtime", "runtime"),
+        ("rustier_js_proc", "js-proc"),
+    ];
     let mut manifest = toml::Table::from_iter([
         (
             "package".to_owned(),
@@ -38,19 +43,35 @@ pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
         ),
         (
             "dependencies".to_owned(),
-            toml::Value::Table(toml::Table::from_iter([(
-                "rustier".to_owned(),
-                toml::Value::Table(toml::Table::from_iter([(
-                    "path".to_owned(),
-                    toml::Value::String(aux.to_string_lossy().into_owned()),
-                )])),
-            )])),
+            toml::Value::Table(
+                builtin
+                    .into_iter()
+                    .map(|(name, directory)| {
+                        let path = crates_dir.join(directory);
+                        (
+                            name.into(),
+                            toml::Value::Table(toml::Table::from_iter([(
+                                "path".into(),
+                                toml::Value::String(path.to_string_lossy().into_owned()),
+                            )])),
+                        )
+                    })
+                    .collect(),
+            ),
         ),
         (
             "workspace".to_owned(),
             toml::Value::Table(toml::Table::new()),
         ),
     ]);
+
+    manifest.insert(
+        "patch".into(),
+        toml::Value::Table(toml::Table::from_iter([(
+            "crates-io".into(),
+            manifest["dependencies"].clone(),
+        )])),
+    );
 
     let dependencies = manifest["dependencies"].as_table_mut().unwrap();
     for (name, dependency) in crates {
@@ -65,10 +86,7 @@ pub fn render_manifest(crates: &BTreeMap<String, Dependency>) -> String {
                 toml::Value::Array(features.iter().cloned().map(toml::Value::String).collect()),
             );
         }
-        dependencies.insert(
-            name.clone(),
-            toml::Value::Table(entry),
-        );
+        dependencies.insert(name.clone(), toml::Value::Table(entry));
     }
     manifest.to_string()
 }
@@ -89,6 +107,12 @@ mod tests {
         .parse()
         .unwrap();
         manifest["dependencies"]["rustier"]["path"] = "<rustier>".into();
+        manifest["dependencies"]["rustier_runtime"]["path"] = "<runtime>".into();
+        manifest["dependencies"]["rustier_js_proc"]["path"] = "<js-proc>".into();
+        for name in ["rustier", "rustier_runtime", "rustier_js_proc"] {
+            manifest["patch"]["crates-io"][name]["path"] =
+                manifest["dependencies"][name]["path"].clone();
+        }
         insta::with_settings!({
             snapshot_path => "_snapshots/manifest",
             prepend_module_to_snapshot => false,

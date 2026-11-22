@@ -65,22 +65,28 @@ export class Compilation {
       Ok(Workspace::load(WorkspaceOpts::from_json(&json)?)?)
     `
     this.files = rs`std::collections::BTreeMap::<String, rustier_compiler::ir::js::JsFile>::new()`
+    this.program = rs`
+      use rustier_workspace::Workspace;
+      Workspace::with_db(${this.workspace}, |db, _| rustier_compiler::ir::js::JsProgram::new(db, Vec::new()))
+    `
   }
 
   transform(path: string, content: string, runtime: string): TransformResult {
     return JSON.parse(rs`
       use rustier_workspace::Workspace;
       use rustier_compiler::{
-          ir::js::JsFile, diag::Theme, codegen::js_transform::edits_to_utf16,
+          ir::{js::{JsProgram, JsFile}, runtime::Runtime}, diag::Theme, codegen::js_transform::edits_to_utf16,
       };
       let files: &mut std::collections::BTreeMap<String, JsFile> = ${this.files};
-      Workspace::with_db(${this.workspace}, |db| {
+      let program: &JsProgram = ${this.program};
+      Workspace::with_db(${this.workspace}, |db, rs| {
+          let compiler = Runtime::new(db, *program, rs);
           let file = JsFile::new::<_, String, String>(db, ${path}, ${content});
           files.insert(file.module_id(db).clone(), file);
           let mut diagnostics = file.diagnostics(db);
           let module = file.module(db);
           if diagnostics.is_empty() {
-              diagnostics.extend(module.macros(db).iter().flat_map(|src| src.check_compile_errors(db)));
+              diagnostics.extend(module.macros(db).iter().flat_map(|src| compiler.source_diagnostics(db, *src)));
           }
           if !diagnostics.is_empty() {
               let messages: Vec<_> = diagnostics.iter()
@@ -89,7 +95,7 @@ export class Compilation {
               return serde_json::json!({ "diagnostics": messages }).to_string();
           }
           let edits: Vec<_> = edits_to_utf16(
-              file.contents(db), module.render_transform_edits(db, ${runtime}),
+              file.contents(db), compiler.render_transform_edits(db, module, ${runtime}),
           ).map(|edit| (edit.start, edit.end, edit.text)).collect();
           serde_json::json!({ "edits": edits }).to_string()
       })
@@ -105,16 +111,16 @@ export class Compilation {
       let modules: String = ${modules};
       let modules: std::collections::BTreeSet<String> = serde_json::from_str(&modules)?;
       files.retain(|id, _| modules.contains(id));
-      Ok(Workspace::with_db(${this.workspace}, |db| {
+      Ok(Workspace::with_db(${this.workspace}, |db, _| {
           JsProgram::new(db, files.values().copied().collect())
       }))
     `
     return JSON.parse(rs`
       use rustier_workspace::Workspace;
-      use rustier_compiler::{ir::js::JsProgram, codegen::runtime_exports};
+      use rustier_compiler::{ir::{js::JsProgram, runtime::Runtime}, codegen::runtime_exports};
       let program: &JsProgram = ${this.program};
-      Workspace::with_db(${this.workspace}, |db| {
-          serde_json::to_string(&runtime_exports(db, *program)).unwrap()
+      Workspace::with_db(${this.workspace}, |db, rs| {
+          serde_json::to_string(&runtime_exports(db, Runtime::new(db, *program, rs))).unwrap()
       })
     `)
   }
@@ -125,7 +131,7 @@ export class Compilation {
       use rustier_workspace::{
           Workspace, WorkspaceOpts, build::{write_glue_crate, GlueCrate, GlueOpts, TargetBuild},
       };
-      use rustier_compiler::{ir::js::JsProgram, codegen::TransportBackend};
+      use rustier_compiler::{ir::{js::JsProgram, runtime::Runtime}, codegen::TransportBackend};
       let batch: &mut Vec<(GlueCrate, Vec<TargetBuild>)> = ${batch};
       let program: &JsProgram = ${this.program};
       let backend: &TransportBackend = ${this.backend};
@@ -134,8 +140,8 @@ export class Compilation {
       let out_dir: String = ${outDir};
       let targets: String = ${targets};
       let targets: Vec<TargetBuild> = serde_json::from_str(&targets)?;
-      let glue = Workspace::with_db(${this.workspace}, |db| {
-          write_glue_crate(db, *program, GlueOpts {
+      let glue = Workspace::with_db(${this.workspace}, |db, rs| {
+          write_glue_crate(db, Runtime::new(db, *program, rs), GlueOpts {
               out_dir: out_dir.into(),
               backend: backend.clone(),
               dependency_crates: opts.dependency_crates,
@@ -150,12 +156,12 @@ export class Compilation {
     const backend = createBackend(this.targets[0].kind, loading)
     return rs`
       use rustier_workspace::Workspace;
-      use rustier_compiler::{ir::js::JsProgram, codegen::TransportBackend};
+      use rustier_compiler::{ir::{js::JsProgram, runtime::Runtime}, codegen::TransportBackend};
       let program: &JsProgram = ${this.program};
       let backend: &TransportBackend = ${backend};
       let binary: String = ${binary};
-      Workspace::with_db(${this.workspace}, |db| {
-          program.runtime(db).render_js_ffi(db, backend, &binary)
+      Workspace::with_db(${this.workspace}, |db, rs| {
+          Runtime::new(db, *program, rs).render_js_ffi(db, backend, &binary)
       })
     `
   }

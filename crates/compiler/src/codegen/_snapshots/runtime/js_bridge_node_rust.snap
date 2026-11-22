@@ -1,0 +1,517 @@
+---
+source: tests/js_bridge_codegen.rs
+expression: "format!(\"# Input\\n\\n```js\\n{input}\\n```\\n\\n# Generated Rust\\n\\n```rust\\n{rust}```\")"
+---
+# Input
+
+```js
+import { rs } from "rustier";
+export const makePair = x => rs`
+    let x: u32 = ${x};
+    js!(return [@{x}, @{vec![x]}])
+`;
+```
+
+# Generated Rust
+
+```rust
+#[allow(unused_imports)]
+use ::rustier_runtime::transport::{
+    JsEnvHandle as __RustierEnvHandle, JsValueHandle as __RustierValueHandle,
+    napi_sys as __rustier_napi,
+};
+unsafe extern "C" fn __rustier_drop_handle(
+    env: __rustier_napi::napi_env,
+    info: __rustier_napi::napi_callback_info,
+) -> __rustier_napi::napi_value {
+    let result = ::std::panic::catch_unwind(
+        ::std::panic::AssertUnwindSafe(|| {
+            let mut __rustier_args = [::std::ptr::null_mut(); 1];
+            let mut argc = 1;
+            let mut data = ::std::ptr::null_mut();
+            let status = unsafe {
+                __rustier_napi::napi_get_cb_info(
+                    env,
+                    info,
+                    &mut argc,
+                    __rustier_args.as_mut_ptr(),
+                    ::std::ptr::null_mut(),
+                    &mut data,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok {
+                unsafe {
+                    __rustier_napi::napi_throw_error(
+                        env,
+                        ::std::ptr::null(),
+                        c"Could not read Rustier callback info".as_ptr(),
+                    );
+                }
+                return ::std::ptr::null_mut();
+            }
+            let __rustier_env_handle = unsafe {
+                __RustierEnvHandle::from_raw(env, data)
+            };
+            let mut raw: u64 = 0;
+            let mut lossless = false;
+            let status = unsafe {
+                __rustier_napi::napi_get_value_bigint_uint64(
+                    env,
+                    __rustier_args[0],
+                    &mut raw,
+                    &mut lossless,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok || !lossless {
+                panic!("Expected a lossless unsigned pointer-sized integer");
+            }
+            let __rustier_handle_0 = usize::try_from(raw)
+                .expect("Integer exceeds usize");
+            let __rustier_output = {
+                unsafe {
+                    ::rustier_runtime::runtime::rust_handles::RustHandle::drop_raw(
+                        __rustier_handle_0,
+                    );
+                }
+            };
+            {
+                let mut undefined = ::std::ptr::null_mut();
+                let status = unsafe {
+                    __rustier_napi::napi_get_undefined(env, &mut undefined)
+                };
+                if status != __rustier_napi::Status::napi_ok {
+                    unsafe {
+                        __rustier_napi::napi_throw_error(
+                            env,
+                            ::std::ptr::null(),
+                            c"Could not obtain undefined".as_ptr(),
+                        );
+                    }
+                    return ::std::ptr::null_mut();
+                }
+                undefined
+            }
+        }),
+    );
+    match result {
+        Ok(value) => value,
+        Err(_) => {
+            unsafe {
+                __rustier_napi::napi_throw_error(
+                    env,
+                    ::std::ptr::null(),
+                    c"Rust macro panicked".as_ptr(),
+                );
+            }
+            ::std::ptr::null_mut()
+        }
+    }
+}
+fn import___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331<
+    const N: usize,
+>(
+    _env: ::rustier_runtime::JsEnv,
+    args: [::rustier_runtime::JsValue; N],
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    let handle = __RustierEnvHandle::from(_env);
+    let imports = unsafe { handle.static_data::<__RustierBridgeState>() }
+        .and_then(|state| state.get())
+        .ok_or_else(::rustier_runtime::JsCallError::unbound)?;
+    let value = imports
+        .__rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331
+        .call(args.map(__RustierValueHandle::from))
+        .map_err(::rustier_runtime::JsValue::from)?;
+    Ok(value.into())
+}
+fn import___rustier_new_handle<const N: usize>(
+    _env: ::rustier_runtime::JsEnv,
+    args: [::rustier_runtime::JsValue; N],
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    let handle = __RustierEnvHandle::from(_env);
+    let imports = unsafe { handle.static_data::<__RustierBridgeState>() }
+        .and_then(|state| state.get())
+        .ok_or_else(::rustier_runtime::JsCallError::unbound)?;
+    let value = imports
+        .__rustier_new_handle
+        .call(args.map(__RustierValueHandle::from))
+        .map_err(::rustier_runtime::JsValue::from)?;
+    Ok(value.into())
+}
+struct __RustierImports {
+    __rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331: ::rustier_runtime::transport::NodeFunction,
+    __rustier_new_handle: ::rustier_runtime::transport::NodeFunction,
+}
+type __RustierBridgeState = ::std::cell::OnceCell<__RustierImports>;
+unsafe extern "C" fn __rustier_bind(
+    env: __rustier_napi::napi_env,
+    info: __rustier_napi::napi_callback_info,
+) -> __rustier_napi::napi_value {
+    let result = ::std::panic::catch_unwind(
+        ::std::panic::AssertUnwindSafe(|| {
+            let mut __rustier_args = [::std::ptr::null_mut(); 2];
+            let mut argc = 2;
+            let mut data = ::std::ptr::null_mut();
+            let status = unsafe {
+                __rustier_napi::napi_get_cb_info(
+                    env,
+                    info,
+                    &mut argc,
+                    __rustier_args.as_mut_ptr(),
+                    ::std::ptr::null_mut(),
+                    &mut data,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok {
+                unsafe {
+                    __rustier_napi::napi_throw_error(
+                        env,
+                        ::std::ptr::null(),
+                        c"Could not read Rustier callback info".as_ptr(),
+                    );
+                }
+                return ::std::ptr::null_mut();
+            }
+            let __rustier_env_handle = unsafe {
+                __RustierEnvHandle::from_raw(env, data)
+            };
+            let __rustier_handle_0 = unsafe {
+                __RustierValueHandle::from_napi_value(
+                    __rustier_args[0] as usize,
+                    __rustier_env_handle,
+                )
+            };
+            let __rustier_handle_1 = unsafe {
+                __RustierValueHandle::from_napi_value(
+                    __rustier_args[1] as usize,
+                    __rustier_env_handle,
+                )
+            };
+            let __rustier_output = {
+                (|| -> Result<(), ::rustier_runtime::transport::TransportError> {
+                    let state = unsafe {
+                        __rustier_env_handle.static_data::<__RustierBridgeState>()
+                    }
+                        .ok_or(
+                            ::rustier_runtime::transport::TransportError::Static(
+                                "Missing Rustier static data",
+                            ),
+                        )?;
+                    if state.get().is_none() {
+                        let imports = __RustierImports {
+                            __rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331: ::rustier_runtime::transport::NodeFunction::bind(
+                                __rustier_handle_0,
+                            )?,
+                            __rustier_new_handle: ::rustier_runtime::transport::NodeFunction::bind(
+                                __rustier_handle_1,
+                            )?,
+                        };
+                        let _ = state.set(imports);
+                    }
+                    Ok(())
+                })()
+            };
+            let __rustier_output = match __rustier_output {
+                Ok(value) => value,
+                Err(error) => {
+                    __rustier_env_handle.throw_error(error);
+                    return ::std::ptr::null_mut();
+                }
+            };
+            {
+                let mut undefined = ::std::ptr::null_mut();
+                let status = unsafe {
+                    __rustier_napi::napi_get_undefined(env, &mut undefined)
+                };
+                if status != __rustier_napi::Status::napi_ok {
+                    unsafe {
+                        __rustier_napi::napi_throw_error(
+                            env,
+                            ::std::ptr::null(),
+                            c"Could not obtain undefined".as_ptr(),
+                        );
+                    }
+                    return ::std::ptr::null_mut();
+                }
+                undefined
+            }
+        }),
+    );
+    match result {
+        Ok(value) => value,
+        Err(_) => {
+            unsafe {
+                __rustier_napi::napi_throw_error(
+                    env,
+                    ::std::ptr::null(),
+                    c"Rust macro panicked".as_ptr(),
+                );
+            }
+            ::std::ptr::null_mut()
+        }
+    }
+}
+fn __rustier_input(
+    env: ::rustier_runtime::JsEnv,
+    input: ::rustier_runtime::runtime::js_call::Input,
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    match input.into_value(env) {
+        Ok(value) => Ok(value),
+        Err(handle) => {
+            let pointer = env.new_string(handle.as_raw().to_string());
+            let value = import___rustier_new_handle(env, [pointer])?;
+            handle.into_raw();
+            Ok(value)
+        }
+    }
+}
+#[unsafe(no_mangle)]
+pub extern "Rust" fn __rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+    env: ::rustier_runtime::JsEnv,
+    arg_0: ::rustier_runtime::runtime::js_call::Input,
+    arg_1: ::rustier_runtime::runtime::js_call::Input,
+) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
+    import___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+        env,
+        [__rustier_input(env, arg_0)?, __rustier_input(env, arg_1)?],
+    )
+}
+unsafe extern "C" fn __rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c(
+    env: __rustier_napi::napi_env,
+    info: __rustier_napi::napi_callback_info,
+) -> __rustier_napi::napi_value {
+    let result = ::std::panic::catch_unwind(
+        ::std::panic::AssertUnwindSafe(|| {
+            let mut __rustier_args = [::std::ptr::null_mut(); 1];
+            let mut argc = 1;
+            let mut data = ::std::ptr::null_mut();
+            let status = unsafe {
+                __rustier_napi::napi_get_cb_info(
+                    env,
+                    info,
+                    &mut argc,
+                    __rustier_args.as_mut_ptr(),
+                    ::std::ptr::null_mut(),
+                    &mut data,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok {
+                unsafe {
+                    __rustier_napi::napi_throw_error(
+                        env,
+                        ::std::ptr::null(),
+                        c"Could not read Rustier callback info".as_ptr(),
+                    );
+                }
+                return ::std::ptr::null_mut();
+            }
+            let __rustier_env_handle = unsafe {
+                __RustierEnvHandle::from_raw(env, data)
+            };
+            let mut __rustier_handle_0: f64 = 0.0;
+            let status = unsafe {
+                __rustier_napi::napi_get_value_double(
+                    env,
+                    __rustier_args[0],
+                    &mut __rustier_handle_0,
+                )
+            };
+            if status != __rustier_napi::Status::napi_ok {
+                panic!("Expected a JavaScript number");
+            }
+            let __rustier_output = {
+                let __rustier_env = ::rustier_runtime::JsEnv::from(__rustier_env_handle);
+                #[allow(unused_imports)]
+                use ::rustier::{JsCallError, JsEnv, JsMacro, JsValue, JsValueType, Key};
+                #[allow(unused_imports)]
+                use ::rustier_js_proc::__js_in_rs as js;
+                let __rustier_arg_0 = (__rustier_handle_0) as u32;
+                let __rustier_output = (|| -> ::std::result::Result<
+                    ::rustier_runtime::JsValue,
+                    _,
+                > {
+                    let x: u32 = __rustier_arg_0;
+                    js!(return [@ { x }, @ { vec![x] }])
+                })();
+                __rustier_output
+                    .map(|__rustier_output| ::rustier_runtime::transport::JsValueHandle::from(
+                        __rustier_output,
+                    ))
+                    .map_err(|error| {
+                        let error: ::std::boxed::Box<
+                            dyn ::std::error::Error + Send + Sync + 'static,
+                        > = error.into();
+                        ::rustier_runtime::transport::TransportError::Dynamic(
+                            error.to_string(),
+                        )
+                    })
+            };
+            let __rustier_output = match __rustier_output {
+                Ok(value) => value,
+                Err(error) => {
+                    __rustier_env_handle.throw_error(error);
+                    return ::std::ptr::null_mut();
+                }
+            };
+            unsafe { __rustier_output.into_napi_value() as __rustier_napi::napi_value }
+        }),
+    );
+    match result {
+        Ok(value) => value,
+        Err(_) => {
+            unsafe {
+                __rustier_napi::napi_throw_error(
+                    env,
+                    ::std::ptr::null(),
+                    c"Rust macro panicked".as_ptr(),
+                );
+            }
+            ::std::ptr::null_mut()
+        }
+    }
+}
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn napi_register_module_v1(
+    env: __rustier_napi::napi_env,
+    exports: __rustier_napi::napi_value,
+) -> __rustier_napi::napi_value {
+    #[cfg(target_env = "msvc")]
+    {
+        static SETUP: ::std::sync::Once = ::std::sync::Once::new();
+        SETUP.call_once(|| ::std::mem::forget(unsafe { __rustier_napi::setup() }));
+    }
+    let Ok(data) = (unsafe {
+        __RustierEnvHandle::allocate_static_data(env, __RustierBridgeState::new())
+    }) else {
+        unsafe {
+            __rustier_napi::napi_throw_error(
+                env,
+                ::std::ptr::null(),
+                c"Could not allocate Rustier bridge state".as_ptr(),
+            );
+        }
+        return ::std::ptr::null_mut();
+    };
+    let mut function = ::std::ptr::null_mut();
+    let status = unsafe {
+        __rustier_napi::napi_create_function(
+            env,
+            c"__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c"
+                .as_ptr(),
+            74,
+            Some(
+                __rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c,
+            ),
+            data,
+            &mut function,
+        )
+    };
+    if status != __rustier_napi::Status::napi_ok {
+        unsafe {
+            __rustier_napi::napi_throw_error(
+                env,
+                ::std::ptr::null(),
+                c"Could not create Rustier function".as_ptr(),
+            );
+        }
+        return ::std::ptr::null_mut();
+    }
+    let status = unsafe {
+        __rustier_napi::napi_set_named_property(
+            env,
+            exports,
+            c"__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c"
+                .as_ptr(),
+            function,
+        )
+    };
+    if status != __rustier_napi::Status::napi_ok {
+        unsafe {
+            __rustier_napi::napi_throw_error(
+                env,
+                ::std::ptr::null(),
+                c"Could not export Rustier function".as_ptr(),
+            );
+        }
+        return ::std::ptr::null_mut();
+    }
+    let mut function = ::std::ptr::null_mut();
+    let status = unsafe {
+        __rustier_napi::napi_create_function(
+            env,
+            c"__rustier_drop_handle".as_ptr(),
+            21,
+            Some(__rustier_drop_handle),
+            data,
+            &mut function,
+        )
+    };
+    if status != __rustier_napi::Status::napi_ok {
+        unsafe {
+            __rustier_napi::napi_throw_error(
+                env,
+                ::std::ptr::null(),
+                c"Could not create Rustier function".as_ptr(),
+            );
+        }
+        return ::std::ptr::null_mut();
+    }
+    let status = unsafe {
+        __rustier_napi::napi_set_named_property(
+            env,
+            exports,
+            c"__rustier_drop_handle".as_ptr(),
+            function,
+        )
+    };
+    if status != __rustier_napi::Status::napi_ok {
+        unsafe {
+            __rustier_napi::napi_throw_error(
+                env,
+                ::std::ptr::null(),
+                c"Could not export Rustier function".as_ptr(),
+            );
+        }
+        return ::std::ptr::null_mut();
+    }
+    let mut function = ::std::ptr::null_mut();
+    let status = unsafe {
+        __rustier_napi::napi_create_function(
+            env,
+            c"__rustier_bind".as_ptr(),
+            14,
+            Some(__rustier_bind),
+            data,
+            &mut function,
+        )
+    };
+    if status != __rustier_napi::Status::napi_ok {
+        unsafe {
+            __rustier_napi::napi_throw_error(
+                env,
+                ::std::ptr::null(),
+                c"Could not create Rustier function".as_ptr(),
+            );
+        }
+        return ::std::ptr::null_mut();
+    }
+    let status = unsafe {
+        __rustier_napi::napi_set_named_property(
+            env,
+            exports,
+            c"__rustier_bind".as_ptr(),
+            function,
+        )
+    };
+    if status != __rustier_napi::Status::napi_ok {
+        unsafe {
+            __rustier_napi::napi_throw_error(
+                env,
+                ::std::ptr::null(),
+                c"Could not export Rustier function".as_ptr(),
+            );
+        }
+        return ::std::ptr::null_mut();
+    }
+    exports
+}
+```

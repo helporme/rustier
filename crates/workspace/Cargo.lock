@@ -477,6 +477,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ab85b9b05e3978cc9a9cf8fea7f01b494e1a09ed3037e16ba39edc7a29eb61a"
 
 [[package]]
+name = "getrandom"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1351,6 +1362,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "r-efi"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
+
+[[package]]
 name = "ra-ap-rustc_abi"
 version = "0.166.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2101,11 +2118,25 @@ dependencies = [
  "ra_ap_ide_db",
  "ra_ap_syntax",
  "ra_ap_vfs",
+ "rustier_js_syntax",
  "salsa",
  "serde",
  "thiserror",
  "toml 0.9.12+spec-1.1.0",
  "triomphe",
+]
+
+[[package]]
+name = "rustier_js_syntax"
+version = "0.0.2"
+dependencies = [
+ "blake3",
+ "oxc_allocator",
+ "oxc_ast",
+ "oxc_ast_visit",
+ "oxc_parser",
+ "oxc_span",
+ "proc-macro2",
 ]
 
 [[package]]
@@ -2117,15 +2148,19 @@ dependencies = [
  "cargo_metadata",
  "ra_ap_base_db",
  "ra_ap_hir",
+ "ra_ap_hir_expand",
  "ra_ap_load-cargo",
+ "ra_ap_proc_macro_api",
  "ra_ap_project_model",
  "ra_ap_vfs",
  "rustc_version",
  "rustier_compiler",
+ "rustier_js_syntax",
  "salsa",
  "serde",
  "serde_json",
  "target-lexicon",
+ "tempfile",
  "thiserror",
 ]
 
@@ -2407,6 +2442,19 @@ name = "temp-dir"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "016ef9739649996fcc983b9c588fe3d557cf216d4d98503ce1b057ab5a66d689"
+
+[[package]]
+name = "tempfile"
+version = "3.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
+dependencies = [
+ "fastrand",
+ "getrandom",
+ "once_cell",
+ "rustix",
+ "windows-sys",
+]
 
 [[package]]
 name = "terminal_size"

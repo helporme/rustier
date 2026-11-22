@@ -1,0 +1,117 @@
+---
+source: tests/js_bridge_codegen.rs
+expression: "format!(\"# Input\\n\\n```js\\n{input}\\n```\\n\\n# Transformed caller\\n\\n```js\\n{caller}\\n```\\n\\n# Generated runtime.mjs\\n\\n```js\\n{js}\\n```\")"
+---
+# Input
+
+```js
+import { rs } from "rustier";
+export const makePair = x => rs`
+    let x: u32 = ${x};
+    js!(return [@{x}, @{vec![x]}])
+`;
+```
+
+# Transformed caller
+
+```js
+import * as __rustier_ffi from "./runtime.mjs";
+import { rs } from "rustier";
+export const makePair = x => __rustier_ffi.__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c((x));
+```
+
+# Generated runtime.mjs
+
+```js
+import{
+	createRequire as __rustier_create_require
+}from "node:module";
+const __rustier_exports = __rustier_create_require(
+	import.meta.url
+)(
+	"./bridge.node"
+);
+function __rustier_drop_handle(
+	pointer
+){
+	let __rustier_drop_result;
+	__rustier_drop_result= __rustier_exports.__rustier_drop_handle(pointer);
+}
+const __rustier_handle_key = Symbol();
+const __rustier_handle_finalizer = new FinalizationRegistry(__rustier_drop_handle);
+let __rustier_is_handle;
+let __rustier_handle_pointer;
+
+function __rustier_new_handle(pointer) {
+  return new Rs(BigInt(pointer), __rustier_handle_key);
+}
+
+class Rs {
+  #pointer;
+
+  constructor(pointer, key) {
+    if (key !== __rustier_handle_key) {
+      throw new TypeError('Rust handles can only be created by Rust');
+    }
+
+    this.#pointer = pointer;
+    __rustier_handle_finalizer.register(this, pointer);
+  }
+
+  static {
+    __rustier_is_handle = value =>
+      typeof value === 'object' && value !== null && #pointer in value;
+    __rustier_handle_pointer = value => value.#pointer;
+  }
+}
+function __rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+	__rustier_input_0,
+	__rustier_input_1
+){
+	return [(__rustier_input_0), (__rustier_input_1)]
+}
+if(
+	__rustier_exports.__rustier_facade
+){
+	(
+		{
+			__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c
+		}= __rustier_exports.__rustier_facade
+	);
+}else{
+	__rustier_exports.__rustier_bind(
+		__rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331,
+		__rustier_new_handle
+	);
+	__rustier_exports.__rustier_facade ={
+		__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c
+	};
+}
+
+export function __rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c(__rustier_arg_0){
+	if(
+		typeof __rustier_arg_0 !== "number"
+	){
+		throw new TypeError(
+			"Rustier input 0: expected number"
+		);
+	}
+	let __rustier_result;
+	try{
+		__rustier_result= __rustier_exports.__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c(__rustier_arg_0);
+	}catch(
+		error
+	){
+		if(
+			error instanceof Error && error.name === "RustError" && typeof
+			Error.captureStackTrace === "function"
+		){
+			Error.captureStackTrace(
+				error,__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c
+			);
+		}
+		throw error;
+	}
+	return __rustier_result;
+}
+```

@@ -3,6 +3,10 @@ const __rustier_handle_finalizer = new FinalizationRegistry(__rustier_drop_handl
 let __rustier_is_handle;
 let __rustier_handle_pointer;
 
+function __rustier_new_handle(pointer) {
+  return new Rs(BigInt(pointer), __rustier_handle_key);
+}
+
 class Rs {
   #pointer;
 

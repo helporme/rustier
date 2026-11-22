@@ -4,7 +4,8 @@ use compiler::{
     diag::Theme,
     ir::{
         js::{JsFile, JsProgram},
-        runtime::RuntimeAnalysis,
+        rs::RsProgram,
+        runtime::Runtime,
     },
 };
 use ra_ap_base_db::{
@@ -24,6 +25,7 @@ include!(concat!(env!("OUT_DIR"), "/sources.rs"));
 pub struct Workspace {
     db: RootDatabase,
     program: JsProgram,
+    rs_program: RsProgram,
 }
 
 pub struct Analysis {
@@ -101,7 +103,7 @@ impl Workspace {
                     Env::default(),
                     origin,
                     Vec::new(),
-                    false,
+                    name == "rustier_js_proc",
                     cwd.clone(),
                     workspace.clone(),
                 );
@@ -114,21 +116,25 @@ impl Workspace {
                     (name, dependency),
                     ("alloc", "core")
                         | ("std", "core" | "alloc")
-                        | ("aux", "core" | "alloc" | "std")
-                        | ("playground", "core" | "alloc" | "std" | "aux")
+                        | ("rustier_runtime", "core" | "alloc" | "std")
+                        | (
+                            "rustier",
+                            "core" | "std" | "rustier_runtime" | "rustier_js_proc"
+                        )
+                        | (
+                            "playground",
+                            "core"
+                                | "alloc"
+                                | "std"
+                                | "rustier"
+                                | "rustier_runtime"
+                                | "rustier_js_proc"
+                        )
                 ) {
                     graph
                         .add_dep(
                             crate_,
-                            DependencyBuilder::new(
-                                CrateName::new(if dependency == "aux" {
-                                    "rustier"
-                                } else {
-                                    dependency
-                                })
-                                .unwrap(),
-                                target,
-                            ),
+                            DependencyBuilder::new(CrateName::new(dependency).unwrap(), target),
                         )
                         .unwrap();
                 }
@@ -138,10 +144,14 @@ impl Workspace {
         change.set_roots(vec![SourceRoot::new_library(files)]);
         change.set_crate_graph(graph);
         let crates = change.apply(&mut db).unwrap();
-        RuntimeAnalysis::set(&mut db, crates[&template]);
+        let rs_program = RsProgram::new(&db, crates[&template]);
         let program = JsProgram::new(&db, Vec::new());
 
-        Self { db, program }
+        Self {
+            db,
+            program,
+            rs_program,
+        }
     }
 
     pub fn analyze(&mut self, code: String) -> Analysis {
@@ -155,17 +165,16 @@ impl Workspace {
                 .into_iter()
                 .cloned()
                 .collect::<Vec<_>>();
-            diagnostics.extend(self.program.check(db));
-            let runtime = self.program.runtime(db);
+            let runtime = Runtime::new(db, self.program, self.rs_program);
+            diagnostics.extend(runtime.check(db));
             let backend = TransportBackend::Wasm(TransportBackendWasm {
                 mem64: false,
                 import: WasmImport::Fetch,
             });
 
             Analysis {
-                transformed_js: file
-                    .module(db)
-                    .render_transformed(db, "playground:runtime".into())
+                transformed_js: runtime
+                    .render_transformed(db, file.module(db), "playground:runtime".into())
                     .clone(),
                 rust_glue: runtime.render_rs_ffi(db, &backend),
                 js_glue: runtime.render_js_ffi(db, &backend, &"./playground.wasm".into()),

@@ -1704,11 +1704,25 @@ dependencies = [
  "ra_ap_ide_db",
  "ra_ap_syntax",
  "ra_ap_vfs",
+ "rustier_js_syntax",
  "salsa",
  "serde",
  "thiserror",
  "toml",
  "triomphe",
+]
+
+[[package]]
+name = "rustier_js_syntax"
+version = "0.0.2"
+dependencies = [
+ "blake3",
+ "oxc_allocator",
+ "oxc_ast",
+ "oxc_ast_visit",
+ "oxc_parser",
+ "oxc_span",
+ "proc-macro2",
 ]
 
 [[package]]

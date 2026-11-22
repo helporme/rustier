@@ -1,0 +1,10 @@
+[package]
+name = "rustier"
+version = "0.0.2"
+edition = "2024"
+description = "Call JavaScript from Rust with Rustier."
+license = "MIT"
+repository = "https://github.com/helporme/rustier"
+
+[dependencies]
+rustier_runtime = { path = "../runtime", version = "=0.0.2" }

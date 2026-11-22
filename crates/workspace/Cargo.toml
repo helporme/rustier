@@ -10,6 +10,9 @@ repository = "https://github.com/helporme/rustier"
 rustier_compiler = { path = "../compiler", version = "0.0.1" }
 ra_ap_base_db = "=0.0.345"
 ra_ap_hir = "=0.0.345"
+ra_ap_hir_expand = "=0.0.345"
+ra_ap_proc_macro_api = "=0.0.345"
+rustier_js_syntax = { path = "../js-syntax" }
 ra_ap_load-cargo = "=0.0.345"
 ra_ap_project_model = "=0.0.345"
 ra_ap_vfs = "=0.0.345"
@@ -22,6 +25,9 @@ cargo-options = "0.8"
 cargo_metadata = "0.23"
 target-lexicon = "0.13"
 rustc_version = "0.4"
+
+[dev-dependencies]
+tempfile = "3"
 
 [profile.dev.package."*"]
 opt-level = 3

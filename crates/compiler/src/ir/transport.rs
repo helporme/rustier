@@ -1,5 +1,8 @@
 //! IR describing rust/js boundary api, implemented by specific backend (wasm/napi).
 
+use super::runtime::{RsSignature, RsType};
+use crate::db::Db;
+
 /// A transport function defined to be called from js.
 #[salsa::interned]
 pub struct TransportFunction<'db> {
@@ -11,6 +14,35 @@ pub struct TransportFunction<'db> {
     pub can_return_error: bool,
 }
 
+impl<'db> TransportFunction<'db> {
+    /// Lowers a resolved runtime signature to the types carried across the bridge.
+    pub fn lower(db: &'db dyn Db, symbol: &str, signature: RsSignature<'_>) -> Self {
+        Self::new(
+            db,
+            symbol,
+            signature
+                .inputs
+                .iter()
+                .copied()
+                .map(TransportTypeRs::from)
+                .collect::<Vec<_>>(),
+            TransportTypeRs::from(signature.ret_type),
+            signature.can_return_error,
+        )
+    }
+
+    /// The JavaScript finalizer releases a Rust handle by its pointer.
+    pub fn handle_drop(db: &'db dyn Db) -> Self {
+        Self::new(
+            db,
+            "__rustier_drop_handle",
+            vec![TransportTypeRs::Usize],
+            TransportTypeRs::Void,
+            false,
+        )
+    }
+}
+
 /// The Rust-side representation of a value carried by transport.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
 pub enum TransportTypeRs {
@@ -20,6 +52,26 @@ pub enum TransportTypeRs {
     Usize,
     Void,
     JsValueHandle,
+}
+
+impl From<RsType> for TransportTypeRs {
+    fn from(ty: RsType) -> Self {
+        match ty {
+            RsType::String => Self::String,
+            RsType::Bool => Self::Bool,
+            RsType::Void => Self::Void,
+            RsType::JsValue => Self::JsValueHandle,
+            RsType::RustHandle { .. } => Self::Usize,
+            RsType::I8
+            | RsType::I16
+            | RsType::I32
+            | RsType::U8
+            | RsType::U16
+            | RsType::U32
+            | RsType::F32
+            | RsType::F64 => Self::F64,
+        }
+    }
 }
 
 pub type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;

@@ -284,6 +284,15 @@
   }
 
   return {
+    bindImport(fn) {
+      return (ptr, len, failed) => {
+        try {
+          return valueResult(failed, fn(...argumentsFromMemory(ptr, len)), 0);
+        } catch (error) {
+          return valueResult(failed, error, 1);
+        }
+      };
+    },
     __rustier_js_set_error,
     __rustier_js_check_error,
     __rustier_js_init_memory,

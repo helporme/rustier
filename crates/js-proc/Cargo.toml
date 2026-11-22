@@ -1,0 +1,15 @@
+[package]
+name = "rustier_js_proc"
+version = "0.0.2"
+edition = "2024"
+description = "Procedural macro expansion for Rustier JavaScript calls."
+license = "MIT"
+repository = "https://github.com/helporme/rustier"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+rustier_js_syntax = { path = "../js-syntax", version = "=0.0.2" }
+quote = "1"

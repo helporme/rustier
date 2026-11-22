@@ -3,39 +3,36 @@
 use std::collections::HashSet;
 
 mod analysis;
+mod diagnostics;
 
-pub use analysis::{CompileError, RuntimeAnalysis};
+pub use analysis::CompileError;
 
 use crate::{
     db::Db,
     ir::{
         js::{JsPart, JsProgram, RsMacroSrc},
-        transport::{TransportFunction, TransportTypeRs},
+        rs::{JsMacroSrc, RsProgram},
     },
 };
 
-impl JsProgram {
-    /// The runtime associated with this program.
-    pub fn runtime<'db>(self, db: &'db dyn Db) -> Runtime<'db> {
-        Runtime::new(db, self)
-    }
-}
-
-/// Runtime behavior collected from a JavaScript program.
+/// Runtime behavior collected from JavaScript and Rust source modules.
 #[salsa::interned]
 pub struct Runtime<'db> {
     js_program: JsProgram,
+    rs_program: RsProgram,
 }
 
+#[salsa::tracked]
 impl<'db> Runtime<'db> {
-    /// Macros encountered in the program.
-    pub fn macros(self, db: &'db dyn Db) -> Vec<RsMacro<'db>> {
+    /// Distinct `rs` macros from JavaScript modules, ordered by generated symbol.
+    #[salsa::tracked(returns(ref))]
+    pub fn rs_macros(self, db: &'db dyn Db) -> Vec<RsMacro<'db>> {
         let mut seen = HashSet::new();
         let mut macros = Vec::new();
 
         for module in self.js_program(db).modules(db) {
             for src in module.macros(db) {
-                let macro_ = src.as_macro(db);
+                let macro_ = self.lower_rs(db, *src);
                 if seen.insert(macro_) {
                     macros.push(macro_);
                 }
@@ -46,26 +43,64 @@ impl<'db> Runtime<'db> {
         macros
     }
 
+    /// Whether any `js!` input or `rs` return value needs a JavaScript-owned Rust handle.
     pub fn uses_rust_handles(self, db: &'db dyn Db) -> bool {
-        self.macros(db)
-            .into_iter()
-            .any(|macro_| matches!(macro_.ret_type(db), RsType::RustHandle { .. }))
+        self.has_js_handle_inputs(db)
+            || self
+                .rs_macros(db)
+                .iter()
+                .any(|macro_| matches!(macro_.ret_type(db), RsType::RustHandle { .. }))
     }
 
-    pub fn handle_drop_transport(self, db: &'db dyn Db) -> TransportFunction<'db> {
-        TransportFunction::new(
-            db,
-            "__rustier_drop_handle",
-            vec![TransportTypeRs::Usize],
-            TransportTypeRs::Void,
-            false,
-        )
+    /// Whether converting `js!` inputs requires the bridge's Rust handle constructor.
+    pub(crate) fn has_js_handle_inputs(self, db: &'db dyn Db) -> bool {
+        self.js_macro_sources(db).iter().any(|site| {
+            self.js_input_types(db, *site)
+                .as_ref()
+                .is_none_or(|inputs| {
+                    inputs
+                        .iter()
+                        .any(|ty| matches!(ty, RsType::RustHandle { .. }))
+                })
+        })
+    }
+
+    /// All analyzed `js!` call sites in Rust dependencies and inline `rs` bodies.
+    /// Sites with the same generated symbol retain their individual input types.
+    #[salsa::tracked(returns(ref))]
+    pub fn js_macro_sources(self, db: &'db dyn Db) -> Vec<JsMacroSrc<'db>> {
+        self.rs_program(db)
+            .modules_using_js(db)
+            .iter()
+            .flat_map(|module| module.js_macros(db))
+            .chain(
+                self.rs_macros(db)
+                    .iter()
+                    .flat_map(|site| site.js_macros(db)),
+            )
+            .copied()
+            .collect()
+    }
+
+    /// Distinct `js!` implementations from all call sites, ordered by generated symbol.
+    #[salsa::tracked(returns(ref))]
+    pub fn js_macros(self, db: &'db dyn Db) -> Vec<JsMacro<'db>> {
+        let mut seen = HashSet::new();
+        let mut macros: Vec<_> = self
+            .js_macro_sources(db)
+            .iter()
+            .filter_map(|src| self.lower_js(db, *src))
+            .filter(|macro_| seen.insert(*macro_))
+            .collect();
+        macros.sort_unstable_by(|a, b| a.symbol(db).cmp(b.symbol(db)));
+        macros
     }
 }
 
-/// The `rs` macro.
+/// The `rs` macro in js code.
 #[salsa::interned]
 pub struct RsMacro<'db> {
+    program: RsProgram,
     #[returns(ref)]
     pub body: Vec<RsPart>,
 }
@@ -79,11 +114,11 @@ pub enum RsPart {
 }
 
 #[salsa::tracked]
-impl<'db> RsMacroSrc<'db> {
-    /// Converts this macro source into an [`RsMacro`].
+impl<'db> Runtime<'db> {
+    /// Lowers this occurrence in the runtime's Rust dependency context.
     #[salsa::tracked]
-    pub fn as_macro(self, db: &'db dyn Db) -> RsMacro<'db> {
-        let body: Vec<_> = self
+    pub fn lower_rs(self, db: &'db dyn Db, src: RsMacroSrc<'db>) -> RsMacro<'db> {
+        let body: Vec<_> = src
             .body(db)
             .iter()
             .map(|part| match part {
@@ -97,7 +132,7 @@ impl<'db> RsMacroSrc<'db> {
             })
             .collect();
 
-        RsMacro::new(db, body)
+        RsMacro::new(db, self.rs_program(db), body)
     }
 }
 
@@ -122,19 +157,37 @@ impl<'db> RsMacro<'db> {
         format!("__rustier_{}", hash.finalize().to_hex())
     }
 
-    /// Transport-level function of this macro.
-    #[salsa::tracked]
-    pub fn transport(self, db: &'db dyn Db) -> TransportFunction<'db> {
-        TransportFunction::new(
-            db,
-            self.symbol(db),
-            self.inputs(db)
-                .iter()
-                .map(|type_| type_.transport())
-                .collect::<Vec<_>>(),
-            self.ret_type(db).transport(),
-            self.can_return_error(db),
-        )
+    /// The resolved runtime signature, before choosing a wire representation.
+    pub fn signature(self, db: &'db dyn Db) -> RsSignature<'db> {
+        RsSignature {
+            inputs: self.inputs(db),
+            ret_type: self.ret_type(db),
+            can_return_error: self.can_return_error(db),
+        }
+    }
+}
+
+/// Rust-facing argument and return types of a callable `rs` implementation.
+pub struct RsSignature<'db> {
+    pub inputs: &'db [RsType],
+    pub ret_type: RsType,
+    pub can_return_error: bool,
+}
+
+/// A shared `js!` implementation, independent of the Rust expressions at its call sites.
+#[salsa::interned]
+pub struct JsMacro<'db> {
+    #[returns(ref)]
+    pub body: String,
+    pub input_count: usize,
+}
+
+#[salsa::tracked]
+impl<'db> JsMacro<'db> {
+    /// The link name used by both the proc macro and generated glue.
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        rustier_js_syntax::symbol(self.body(db))
     }
 }
 
@@ -175,25 +228,6 @@ pub enum JsType {
 }
 
 impl RsType {
-    /// Chooses the Rust transport representation needed to carry this runtime type.
-    pub fn transport(&self) -> TransportTypeRs {
-        match self {
-            Self::String => TransportTypeRs::String,
-            Self::Bool => TransportTypeRs::Bool,
-            Self::Void => TransportTypeRs::Void,
-            Self::JsValue => TransportTypeRs::JsValueHandle,
-            Self::RustHandle { .. } => TransportTypeRs::Usize,
-            Self::I8
-            | Self::I16
-            | Self::I32
-            | Self::U8
-            | Self::U16
-            | Self::U32
-            | Self::F32
-            | Self::F64 => TransportTypeRs::F64,
-        }
-    }
-
     /// Maps this runtime type to its JS-facing representation.
     pub fn js(&self) -> JsType {
         match self {

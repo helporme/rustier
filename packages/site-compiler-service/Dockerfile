@@ -25,6 +25,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml rust-toolchain.toml LICENSE
 COPY packages/rustier/ ./packages/rustier/
 COPY crates/server/ ./crates/server/
 COPY crates/compiler/ ./crates/compiler/
+COPY crates/rustier/ ./crates/rustier/
+COPY crates/js-proc/ ./crates/js-proc/
+COPY crates/js-syntax/ ./crates/js-syntax/
+COPY crates/workspace/ ./crates/workspace/
 COPY crates/runtime/ ./crates/runtime/
 COPY packages/site-compiler-service/package.json ./packages/site-compiler-service/
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -46,6 +50,9 @@ COPY --from=toolchain /opt/cargo/bin /opt/cargo/bin
 COPY --from=toolchain /opt/cargo/registry /opt/cargo/registry
 COPY --from=toolchain --chown=node:node /opt/playground /opt/playground
 COPY --from=toolchain /compiler /app/packages/site-compiler-service
+COPY --from=toolchain /app/crates/rustier /app/crates/rustier
+COPY --from=toolchain /app/crates/js-proc /app/crates/js-proc
+COPY --from=toolchain /app/crates/js-syntax /app/crates/js-syntax
 COPY --from=toolchain /app/crates/runtime/Cargo.toml /app/crates/runtime/Cargo.toml
 COPY --from=toolchain /app/crates/runtime/src /app/crates/runtime/src
 RUN mkdir -p /work /tmp /proc /dev /app/crates/compiler

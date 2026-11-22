@@ -11,11 +11,12 @@ use ra_ap_vfs::{AbsPathBuf, VfsPath};
 use rustier_compiler::{
     codegen::manifest::{Dependency, render_manifest},
     db::RootDatabase,
-    ir::runtime::RuntimeAnalysis,
+    ir::rs::RsProgram,
 };
 use salsa::Setter;
 
 pub mod build;
+pub mod js_expansion;
 
 /// Options for the generated analysis crate.
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -51,6 +52,7 @@ pub enum LoadError {
 /// Owns a compiler database loaded from a generated Cargo crate.
 pub struct Workspace {
     db: RootDatabase,
+    program: RsProgram,
 }
 
 impl Workspace {
@@ -106,7 +108,7 @@ impl Workspace {
         project.set_build_scripts(build_scripts);
 
         let folders = ProjectFolders::new(std::slice::from_ref(&project), &[], None);
-        let (source_db, vfs, _) = load_workspace(
+        let (mut source_db, vfs, server) = load_workspace(
             project.clone(),
             &config.extra_env,
             &LoadCargoConfig {
@@ -123,13 +125,15 @@ impl Workspace {
             .expect("generated analysis crate root is loaded")
             .0;
 
-        let (graph, _) = project.to_crate_graph(
+        let (graph, paths) = project.to_crate_graph(
             &mut |path| {
                 vfs.file_id(&VfsPath::from(path.to_path_buf()))
                     .map(|(id, _)| id)
             },
             &config.extra_env,
         );
+
+        js_expansion::install(&mut source_db, server.as_ref(), &graph, paths);
 
         let template = graph
             .iter()
@@ -170,14 +174,13 @@ impl Workspace {
                 .map(|(id, macros)| (crates[&id], macros))
                 .collect());
         ra_ap_hir::db::set_expand_proc_attr_macros(&mut db, true);
-        RuntimeAnalysis::set(&mut db, crates[&template]);
-
-        Ok(Self { db })
+        let program = RsProgram::new(&db, crates[&template]);
+        Ok(Self { db, program })
     }
 
-    /// Runs a closure with the database attached to rust-analyzer's thread-local context.
-    pub fn with_db<R>(&self, f: impl FnOnce(&RootDatabase) -> R) -> R {
-        ra_ap_hir::attach_db(&self.db, || f(&self.db))
+    /// Runs a closure with the attached database and this workspace's Rust program.
+    pub fn with_db<R>(&self, f: impl FnOnce(&RootDatabase, RsProgram) -> R) -> R {
+        ra_ap_hir::attach_db(&self.db, || f(&self.db, self.program))
     }
 
     /// Provides mutable access for setting database inputs.

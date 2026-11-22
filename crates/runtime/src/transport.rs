@@ -6,7 +6,7 @@ pub use napi_sys;
 pub mod wasm;
 
 #[cfg(not(target_family = "wasm"))]
-pub use node::{JsEnvHandle, JsValueHandle};
+pub use node::{JsEnvHandle, JsValueHandle, NodeFunction};
 #[cfg(target_family = "wasm")]
 pub use wasm::{JsEnvHandle, JsValueHandle};
 

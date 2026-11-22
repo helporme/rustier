@@ -20,13 +20,14 @@ pub enum TransportBackend {
 pub(super) fn render_transport_preamble_js(
     backend: &TransportBackend,
     bin_file_path: &String,
+    imports: &[&str],
 ) -> impl FragmentOnce {
     fragment(move |p| match backend {
         TransportBackend::Node(backend) => {
             node::render_transport_preamble_js(backend, bin_file_path).apply(p)
         }
         TransportBackend::Wasm(backend) => {
-            wasm::render_transport_preamble_js(backend, bin_file_path).apply(p)
+            wasm::render_transport_preamble_js(backend, bin_file_path, imports).apply(p)
         }
     })
 }
@@ -41,10 +42,11 @@ pub(super) fn render_transport_preamble_rs(backend: &TransportBackend) -> impl F
 pub(super) fn render_transport_registration_rs<'db>(
     backend: &TransportBackend,
     db: &'db dyn Db,
+    bind_imports: Option<TransportFunction<'db>>,
     functions: impl IntoIterator<Item = TransportFunction<'db>>,
 ) -> String {
     match backend {
-        TransportBackend::Node(_) => node::render_registration(db, functions),
+        TransportBackend::Node(_) => node::render_registration(db, bind_imports, functions),
         TransportBackend::Wasm(_) => String::new(),
     }
 }

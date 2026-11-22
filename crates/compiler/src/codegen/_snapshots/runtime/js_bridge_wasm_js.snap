@@ -1,0 +1,132 @@
+---
+source: tests/js_bridge_codegen.rs
+expression: "format!(\"# Input\\n\\n```js\\n{input}\\n```\\n\\n# Transformed caller\\n\\n```js\\n{caller}\\n```\\n\\n# Generated runtime.mjs\\n\\n```js\\n{js}\\n```\")"
+---
+# Input
+
+```js
+import { rs } from "rustier";
+export const makePair = x => rs`
+    let x: u32 = ${x};
+    js!(return [@{x}, @{vec![x]}])
+`;
+```
+
+# Transformed caller
+
+```js
+import * as __rustier_ffi from "./runtime.mjs";
+import { rs } from "rustier";
+export const makePair = x => __rustier_ffi.__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c((x));
+```
+
+# Generated runtime.mjs
+
+```js
+const __rustier_values =/* static Wasm runtime from transport/wasm/runtime.mjs */;
+const __rustier_imports ={
+	"./rustier-wasm-rt.mjs": __rustier_values, "rustier:js": {call___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331: __rustier_values.bindImport(
+		__rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331
+	),
+	call___rustier_new_handle: __rustier_values.bindImport(
+		__rustier_new_handle
+	),
+	}
+};
+const{
+	instance: __rustier_instance
+}= await WebAssembly.instantiate(
+	await(
+		await fetch(
+			new URL(
+				"./bridge.wasm", import.meta.url
+			)
+		)
+	).arrayBuffer(), __rustier_imports
+);
+const __rustier_exports = __rustier_instance.exports;
+__rustier_values.__rustier_js_init_memory(
+	__rustier_exports.memory
+);
+function __rustier_drop_handle(
+	pointer
+){
+	let __rustier_drop_result;
+	{
+		const result = __rustier_exports.__rustier_drop_handle(
+			0, Number(
+				pointer
+			)
+		);
+		__rustier_drop_result=undefined;
+	}
+}
+const __rustier_handle_key = Symbol();
+const __rustier_handle_finalizer = new FinalizationRegistry(__rustier_drop_handle);
+let __rustier_is_handle;
+let __rustier_handle_pointer;
+
+function __rustier_new_handle(pointer) {
+  return new Rs(BigInt(pointer), __rustier_handle_key);
+}
+
+class Rs {
+  #pointer;
+
+  constructor(pointer, key) {
+    if (key !== __rustier_handle_key) {
+      throw new TypeError('Rust handles can only be created by Rust');
+    }
+
+    this.#pointer = pointer;
+    __rustier_handle_finalizer.register(this, pointer);
+  }
+
+  static {
+    __rustier_is_handle = value =>
+      typeof value === 'object' && value !== null && #pointer in value;
+    __rustier_handle_pointer = value => value.#pointer;
+  }
+}
+function __rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
+	__rustier_input_0,
+	__rustier_input_1
+){
+	return [(__rustier_input_0), (__rustier_input_1)]
+}
+
+export function __rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c(__rustier_arg_0){
+	if(
+		typeof __rustier_arg_0 !== "number"
+	){
+		throw new TypeError(
+			"Rustier input 0: expected number"
+		);
+	}
+	let __rustier_result;
+	try{
+		{
+			const result = __rustier_exports.__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c(
+				0, __rustier_arg_0
+			);
+			__rustier_values.__rustier_js_check_error();
+			__rustier_result=__rustier_values.__rustier_js_take(
+				result
+			);
+		}
+	}catch(
+		error
+	){
+		if(
+			error instanceof Error && error.name === "RustError" && typeof
+			Error.captureStackTrace === "function"
+		){
+			Error.captureStackTrace(
+				error,__rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7eb3daf3328c
+			);
+		}
+		throw error;
+	}
+	return __rustier_result;
+}
+```

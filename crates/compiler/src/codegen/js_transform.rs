@@ -4,6 +4,7 @@ use crate::{
     codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
     db::Db,
     ir::js::{JsFileRange, JsModule, JsPart, RsMacroSrc},
+    ir::runtime::Runtime,
 };
 
 #[derive(Clone, PartialEq, Eq, salsa::Update)]
@@ -39,16 +40,21 @@ pub fn edits_to_utf16<'a>(
 }
 
 #[salsa::tracked]
-impl<'db> JsModule<'db> {
+impl<'db> Runtime<'db> {
     /// Replaces imported `rs` tags with calls to their exported macro functions.
     #[salsa::tracked(returns(ref))]
-    pub fn render_transformed(self, db: &'db dyn Db, ffi_js_mod_path: String) -> String {
-        let source = self.file(db).contents(db);
+    pub fn render_transformed(
+        self,
+        db: &'db dyn Db,
+        module: JsModule<'db>,
+        ffi_js_mod_path: String,
+    ) -> String {
+        let source = module.file(db).contents(db);
 
         fragment(|p| {
             let mut cursor = 0;
 
-            for edit in self.render_transform_edits(db, ffi_js_mod_path) {
+            for edit in self.render_transform_edits(db, module, ffi_js_mod_path) {
                 source[cursor..edit.start as usize].apply(p);
                 edit.text.as_str().apply(p);
                 cursor = edit.end as usize;
@@ -60,9 +66,14 @@ impl<'db> JsModule<'db> {
     }
 
     #[salsa::tracked(returns(ref))]
-    pub fn render_transform_edits(self, db: &'db dyn Db, ffi_js_mod_path: String) -> Vec<JsEdit> {
-        let file = self.file(db);
-        let macros = self.macros(db);
+    pub fn render_transform_edits(
+        self,
+        db: &'db dyn Db,
+        module: JsModule<'db>,
+        ffi_js_mod_path: String,
+    ) -> Vec<JsEdit> {
+        let file = module.file(db);
+        let macros = module.macros(db);
         let source = file.contents(db);
 
         if macros.is_empty() {
@@ -92,6 +103,7 @@ impl<'db> JsModule<'db> {
 
         render_range_edits(
             db,
+            self,
             macros,
             JsFileRange::new(db, file, start as u32, source.len() as u32),
             &binding,
@@ -104,6 +116,7 @@ impl<'db> JsModule<'db> {
 
 fn render_range_edits<'db>(
     db: &'db dyn Db,
+    runtime: Runtime<'db>,
     macros: &[RsMacroSrc<'db>],
     range: JsFileRange<'db>,
     binding: &str,
@@ -117,7 +130,7 @@ fn render_range_edits<'db>(
             continue;
         }
 
-        let diagnostics = src.check_compile_errors(db);
+        let diagnostics = runtime.source_diagnostics(db, *src);
         if !diagnostics.is_empty() {
             let message = diagnostics
                 .iter()
@@ -138,7 +151,7 @@ fn render_range_edits<'db>(
             continue;
         }
 
-        let name = src.as_macro(db).symbol(db);
+        let name = runtime.lower_rs(db, *src).symbol(db);
         let mut prefix = frag!({binding}{"."}{name}{"("}).print();
         let mut start = span.start(db);
         let mut has_arguments = false;
@@ -150,7 +163,7 @@ fn render_range_edits<'db>(
                     end: expression.start(db),
                     text: frag!({prefix}{"("}).print(),
                 });
-                render_range_edits(db, macros, *expression, binding, edits);
+                render_range_edits(db, runtime, macros, *expression, binding, edits);
                 start = expression.end(db);
                 prefix = "), ".into();
                 has_arguments = true;
@@ -194,14 +207,20 @@ fn js_string(value: &str) -> impl FragmentOnce + '_ {
 
 #[cfg(test)]
 mod tests {
-    use crate::ir::js::JsFile;
+    use crate::ir::{
+        js::{JsFile, JsProgram},
+        runtime::Runtime,
+    };
 
     fn snapshot(name: &str, source: &str) {
-        let db = crate::test_common::database();
+        let (db, rs) = crate::test_common::database();
         let file = JsFile::new(&db, "/input.tsx", source);
         let result = ra_ap_hir::attach_db(&db, || {
-            file.module(&db)
-                .render_transformed(&db, "rustier:runtime".into())
+            Runtime::new(&db, JsProgram::new(&db, vec![file]), rs).render_transformed(
+                &db,
+                file.module(&db),
+                "rustier:runtime".into(),
+            )
         });
         let output =
             format!("# Source\n\n```tsx\n{source}\n```\n\n# Result\n\n```tsx\n{result}\n```\n");
@@ -271,12 +290,15 @@ mod tests {
 
     #[test]
     fn custom_ffi_module() {
-        let db = crate::test_common::database();
+        let (db, rs) = crate::test_common::database();
         let source = "import { rs } from 'rustier';\nrs`${value}`;";
         let file = JsFile::new(&db, "/input.ts", source);
         let result = ra_ap_hir::attach_db(&db, || {
-            file.module(&db)
-                .render_transformed(&db, "./generated/ffi-macros.js".into())
+            Runtime::new(&db, JsProgram::new(&db, vec![file]), rs).render_transformed(
+                &db,
+                file.module(&db),
+                "./generated/ffi-macros.js".into(),
+            )
         });
         insta::with_settings!({
             snapshot_path => "_snapshots/js_transform",

@@ -28,7 +28,7 @@ pub(super) fn render_transport_preamble_rs(wasm: &TransportBackendWasm) -> impl 
     let env_type = if wasm.mem64 { "u64" } else { "u32" };
 
     frag!(
-        use ::rustier::transport::{{JsEnvHandle as __RustierEnvHandle, JsValueHandle as __RustierValueHandle}};@
+        use ::rustier_runtime::transport::{{JsEnvHandle as __RustierEnvHandle, JsValueHandle as __RustierValueHandle}};@
         type __RustierEnvRaw = {env_type};@
     )
 }
@@ -36,9 +36,19 @@ pub(super) fn render_transport_preamble_rs(wasm: &TransportBackendWasm) -> impl 
 pub(super) fn render_transport_preamble_js(
     wasm: &TransportBackendWasm,
     bin_file_path: &String,
+    imports: &[&str],
 ) -> impl FragmentOnce {
     let wasm_path = format!("\"{bin_file_path}\"");
     let values = include_str!("wasm/runtime.mjs");
+    let macros = (!imports.is_empty()).then(|| {
+        fragment(move |p| {
+            ", \"rustier:js\": {".apply(p);
+            for name in imports {
+                frag!(call_{name}: __rustier_values.bindImport({name}),@).apply(p);
+            }
+            "}".apply(p);
+        })
+    });
 
     let loading = fragment(move |p| {
         match wasm.import {
@@ -67,7 +77,7 @@ pub(super) fn render_transport_preamble_js(
     // The import-module key must match the #[link] name in rustier/src/transport/wasm.rs.
     frag!(
         const __rustier_values = {values};@
-        const __rustier_imports = {{ "./rustier-wasm-rt.mjs": __rustier_values }};@
+        const __rustier_imports = {{ "./rustier-wasm-rt.mjs": __rustier_values{macros} }};@
         {loading}
         const __rustier_exports = __rustier_instance.exports;@
         __rustier_values.__rustier_js_init_memory(__rustier_exports.memory);@

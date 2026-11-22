@@ -1,0 +1,16 @@
+[package]
+name = "rustier_js_syntax"
+version = "0.0.2"
+edition = "2024"
+description = "Shared interpolation syntax and symbol names for Rustier JavaScript macros."
+license = "MIT"
+repository = "https://github.com/helporme/rustier"
+
+[dependencies]
+oxc_allocator = "=0.138.0"
+oxc_ast = "=0.138.0"
+oxc_ast_visit = "=0.138.0"
+oxc_parser = "=0.138.0"
+oxc_span = "=0.138.0"
+proc-macro2 = { version = "1", features = ["span-locations"] }
+blake3 = "1"

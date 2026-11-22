@@ -1,10 +1,13 @@
 [package]
-name = "rustier"
-version = "0.0.1"
+name = "rustier_runtime"
+version = "0.0.2"
 edition = "2024"
 description = "Rustier macro runtime and transport support."
 license = "MIT"
 repository = "https://github.com/helporme/rustier"
+
+[dependencies]
+rustier_js_proc = { path = "../js-proc", version = "=0.0.2" }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 napi-sys = { version = "3", default-features = false, features = ["napi10"] }

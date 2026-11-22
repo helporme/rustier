@@ -25,28 +25,46 @@ pub(super) fn render_transport_preamble_js(
 pub(super) fn render_transport_preamble_rs() -> impl FragmentOnce {
     frag!(
         #[allow(unused_imports)]@
-        use ::rustier::transport::{{JsEnvHandle as __RustierEnvHandle, JsValueHandle as __RustierValueHandle, napi_sys as __rustier_napi}};@
+        use ::rustier_runtime::transport::{{JsEnvHandle as __RustierEnvHandle, JsValueHandle as __RustierValueHandle, napi_sys as __rustier_napi}};@
     )
 }
 
 pub(super) fn render_registration<'db>(
     db: &'db dyn Db,
+    bind_imports: Option<TransportFunction<'db>>,
     functions: impl IntoIterator<Item = TransportFunction<'db>>,
 ) -> String {
+    let state = match bind_imports {
+        Some(_) => frag!(
+            let Ok(data) = (unsafe {{ __RustierEnvHandle::allocate_static_data(env, __RustierBridgeState::new()) }}) else {{
+                unsafe {{ __rustier_napi::napi_throw_error(env, ::std::ptr::null(), c"Could not allocate Rustier bridge state".as_ptr()); }}@
+                return ::std::ptr::null_mut();@
+            }};@
+        ).print(),
+        None => frag!(let data = ::std::ptr::null_mut();@).print(),
+    };
     let exports = fragment(|p| {
-        for function in functions {
+        for function in functions.into_iter().chain(bind_imports) {
             let name = function.symbol(db);
             let name_literal = format!("c{name:?}");
             let name_literal = name_literal.as_str();
             let length = name.len();
             frag!(
                 let mut function = ::std::ptr::null_mut();@
-                assert_eq!(unsafe {{
-                    __rustier_napi::napi_create_function(env, {name_literal}.as_ptr(), {length}, Some({name}), ::std::ptr::null_mut(), &mut function)
-                }}, __rustier_napi::Status::napi_ok);@
-                assert_eq!(unsafe {{
+                let status = unsafe {{
+                    __rustier_napi::napi_create_function(env, {name_literal}.as_ptr(), {length}, Some({name}), data, &mut function)
+                }};@
+                if status != __rustier_napi::Status::napi_ok {{
+                    unsafe {{ __rustier_napi::napi_throw_error(env, ::std::ptr::null(), c"Could not create Rustier function".as_ptr()); }}@
+                    return ::std::ptr::null_mut();@
+                }}@
+                let status = unsafe {{
                     __rustier_napi::napi_set_named_property(env, exports, {name_literal}.as_ptr(), function)
-                }}, __rustier_napi::Status::napi_ok);@
+                }};@
+                if status != __rustier_napi::Status::napi_ok {{
+                    unsafe {{ __rustier_napi::napi_throw_error(env, ::std::ptr::null(), c"Could not export Rustier function".as_ptr()); }}@
+                    return ::std::ptr::null_mut();@
+                }}@
             ).apply(p);
         }
     });
@@ -61,6 +79,7 @@ pub(super) fn render_registration<'db>(
                 static SETUP: ::std::sync::Once = ::std::sync::Once::new();@
                 SETUP.call_once(|| ::std::mem::forget(unsafe {{ __rustier_napi::setup() }}));@
             }}@
+            {state}
             {exports}
             exports
         }}
@@ -163,7 +182,15 @@ impl TransportBackendNode {
                 }}
             )
             .apply(p),
-            TransportTypeRs::Void => frag!(undefined).apply(p),
+            TransportTypeRs::Void => frag!({{
+                let mut undefined = ::std::ptr::null_mut();@
+                let status = unsafe {{ __rustier_napi::napi_get_undefined(env, &mut undefined) }};@
+                if status != __rustier_napi::Status::napi_ok {{
+                    unsafe {{ __rustier_napi::napi_throw_error(env, ::std::ptr::null(), c"Could not obtain undefined".as_ptr()); }}@
+                    return ::std::ptr::null_mut();@
+                }}@
+                undefined
+            }}).apply(p),
             TransportTypeRs::Usize => frag!(
                 {{
                     let mut value = ::std::ptr::null_mut();@
@@ -203,15 +230,15 @@ impl TransportBackendNode {
                 let result = ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(|| {{
                     let mut __rustier_args = [::std::ptr::null_mut(); {count}];@
                     let mut argc = {count};@
-                    assert_eq!(unsafe {{
-                        __rustier_napi::napi_get_cb_info(env, info, &mut argc, __rustier_args.as_mut_ptr(), ::std::ptr::null_mut(), ::std::ptr::null_mut())
-                    }}, __rustier_napi::Status::napi_ok);@
-                    let mut undefined = ::std::ptr::null_mut();@
-                    assert_eq!(unsafe {{ __rustier_napi::napi_get_undefined(env, &mut undefined) }}, __rustier_napi::Status::napi_ok);@
-                    for argument in __rustier_args.iter_mut().skip(argc) {{
-                        *argument = undefined;@
-                    }}
-                    let __rustier_env_handle = unsafe {{ __RustierEnvHandle::from_raw(env as usize) }};@
+                    let mut data = ::std::ptr::null_mut();@
+                    let status = unsafe {{
+                        __rustier_napi::napi_get_cb_info(env, info, &mut argc, __rustier_args.as_mut_ptr(), ::std::ptr::null_mut(), &mut data)
+                    }};@
+                    if status != __rustier_napi::Status::napi_ok {{
+                        unsafe {{ __rustier_napi::napi_throw_error(env, ::std::ptr::null(), c"Could not read Rustier callback info".as_ptr()); }}@
+                        return ::std::ptr::null_mut();@
+                    }}@
+                    let __rustier_env_handle = unsafe {{ __RustierEnvHandle::from_raw(env, data) }};@
                     {conversions}
                     let __rustier_output = {"{\n"}{body}{"\n};"}@
                     {unwrap}
@@ -220,7 +247,7 @@ impl TransportBackendNode {
                 match result {{
                     Ok(value) => value,
                     Err(_) => {{
-                        unsafe {{ __rustier_napi::napi_throw_error(env, ::std::ptr::null(), c"Rust snippet panicked".as_ptr()); }}@
+                        unsafe {{ __rustier_napi::napi_throw_error(env, ::std::ptr::null(), c"Rust macro panicked".as_ptr()); }}@
                         ::std::ptr::null_mut()
                     }}
                 }}

@@ -93,7 +93,8 @@ impl<'db> RsMacro<'db> {
                     "__rustier_check"
                 };
                 frag!(
-                    fn ~{name}(__rustier_env: ::rustier::runtime::js::JsEnv) ~{"{"}@
+                    fn ~{name}(__rustier_env: ::rustier_runtime::JsEnv) ~{"{"}@
+                    {super::RS_IMPORTS}
                     let __rustier_snippet = |
                 )
                 .apply(p);
@@ -170,11 +171,11 @@ impl<'db> RsMacro<'db> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::RootDatabase;
+    use crate::test_common::database;
 
     fn snapshot(name: &str, parts: Vec<RsPart>, types: Option<&[RsType]>) {
-        let db = RootDatabase::default();
-        let macro_ = RsMacro::new(&db, parts);
+        let (db, rs) = database();
+        let macro_ = RsMacro::new(&db, rs, parts);
         let source = macro_.render_analysis_rs(&db, types, None);
         let rust = prettyplease::unparse(&syn::parse_file(&source.text).unwrap());
         let output = format!("```rust\n{rust}```\n");

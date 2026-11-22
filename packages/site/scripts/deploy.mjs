@@ -88,6 +88,10 @@ export async function compilerFingerprint(architecture) {
 		'crates/server',
 		'crates/compiler',
 		'crates/runtime',
+		'crates/rustier',
+		'crates/js-proc',
+		'crates/js-syntax',
+		'crates/workspace',
 		'packages/site-compiler-service',
 		'rust-toolchain.toml',
 		'pnpm-workspace.yaml'

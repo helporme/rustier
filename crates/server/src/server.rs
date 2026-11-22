@@ -16,7 +16,11 @@ use compiler::{
     },
     db::RootDatabase,
     diag::Theme,
-    ir::js::{JsFile, JsProgram},
+    ir::{
+        js::{JsFile, JsProgram},
+        rs::RsProgram,
+        runtime::Runtime,
+    },
 };
 use napi::{
     Error, Result,
@@ -107,7 +111,7 @@ pub struct Server {
     watchers: Vec<notify::RecommendedWatcher>,
     watch_callback: Option<Arc<ChangeCallback>>,
     watch_graph_dirty: Arc<AtomicBool>,
-    analysis_profile: Option<(String, u64)>,
+    analysis_profile: Option<(String, u64, RsProgram)>,
 }
 
 #[napi]
@@ -223,10 +227,10 @@ impl Server {
     /// Does not build the binary. Returns an error if the profile is unknown.
     #[napi]
     pub fn render_js_ffi(&mut self, profile: String, bin_file_path: String) -> Result<String> {
-        self.prepare_analysis(&profile)?;
+        let rs = self.prepare_analysis(&profile)?;
         let profile = self.profile(&profile)?;
         Ok(ra_ap_hir::attach_db(&self.db, || {
-            profile.program.runtime(&self.db).render_js_ffi(
+            Runtime::new(&self.db, profile.program, rs).render_js_ffi(
                 &self.db,
                 &profile.backend,
                 &bin_file_path,
@@ -236,11 +240,11 @@ impl Server {
 
     #[napi]
     pub fn check(&mut self, profile: String) -> Result<Vec<String>> {
-        self.prepare_analysis(&profile)?;
+        let rs = self.prepare_analysis(&profile)?;
         let program = self.profile(&profile)?.program;
 
         ra_ap_hir::attach_db(&self.db, || {
-            program
+            Runtime::new(&self.db, program, rs)
                 .check(&self.db)
                 .iter()
                 .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
@@ -290,16 +294,21 @@ impl Server {
             return Err(Error::from_reason(messages.join("\n")));
         }
 
-        if !file.module(&self.db).macros(&self.db).is_empty() {
-            self.prepare_analysis(&profile)?;
+        if file.module(&self.db).macros(&self.db).is_empty() {
+            return Ok(TransformResult {
+                edits: Vec::new(),
+                diagnostics: Vec::new(),
+            });
         }
+        let rs = self.prepare_analysis(&profile)?;
 
         ra_ap_hir::attach_db(&self.db, || {
             let module = file.module(&self.db);
+            let runtime = Runtime::new(&self.db, program, rs);
             let diagnostics = module
                 .macros(&self.db)
                 .iter()
-                .flat_map(|src| src.check_compile_errors(&self.db))
+                .flat_map(|src| runtime.source_diagnostics(&self.db, *src))
                 .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
                 .collect::<std::result::Result<Vec<_>, _>>()
                 .map_err(|error| Error::from_reason(error.to_string()))?;
@@ -307,7 +316,7 @@ impl Server {
             let source = file.contents(&self.db);
             let edits = compiler::codegen::js_transform::edits_to_utf16(
                 source,
-                module.render_transform_edits(&self.db, ffi_js_mod_path),
+                runtime.render_transform_edits(&self.db, module, ffi_js_mod_path),
             )
             .map(|edit| TransformEdit {
                 start: edit.start,
@@ -372,14 +381,14 @@ impl Server {
             return Err(error);
         }
 
-        self.prepare_analysis(&profile)?;
+        let rs = self.prepare_analysis(&profile)?;
 
         let state = self
             .profiles
             .get_mut(&profile)
             .ok_or_else(|| Error::from_reason(format!("unknown profile: {profile}")))?;
 
-        state.build(&self.db)
+        state.build(&self.db, rs)
     }
 
     /// Watches configured crates and their local dependencies for all profiles.
@@ -394,15 +403,14 @@ impl Server {
 }
 
 impl Server {
-    fn prepare_analysis(&mut self, name: &str) -> Result<()> {
+    fn prepare_analysis(&mut self, name: &str) -> Result<RsProgram> {
         let profile = self.profile(name)?;
         let revision = profile.dependency_revision.load(Ordering::SeqCst);
-        if self
-            .analysis_profile
-            .as_ref()
-            .is_some_and(|(active, version)| active == name && *version == revision)
+        if let Some((active, version, rs)) = &self.analysis_profile
+            && active == name
+            && *version == revision
         {
-            return Ok(());
+            return Ok(*rs);
         }
         let snapshot = match &profile.analysis {
             Some((version, snapshot)) if *version == revision => snapshot.clone(),
@@ -435,9 +443,9 @@ impl Server {
         };
         let template = snapshot.apply(&mut self.db);
         self.profiles.get_mut(name).unwrap().analysis = Some((revision, snapshot));
-        compiler::ir::runtime::RuntimeAnalysis::set(&mut self.db, template);
-        self.analysis_profile = Some((name.to_owned(), revision));
-        Ok(())
+        let rs = RsProgram::new(&self.db, template);
+        self.analysis_profile = Some((name.to_owned(), revision, rs));
+        Ok(rs)
     }
 
     fn configure_watch(&mut self, callback: Arc<ChangeCallback>) -> Result<()> {
@@ -552,15 +560,16 @@ impl Drop for Server {
 }
 
 impl Profile {
-    fn build(&mut self, db: &RootDatabase) -> Result<BuildResult> {
+    fn build(&mut self, db: &RootDatabase, rs: RsProgram) -> Result<BuildResult> {
         let revision = self.revision.load(Ordering::SeqCst);
         if let Some((built_revision, result)) = &self.built {
             if *built_revision == revision {
                 return Ok(result.clone());
             }
         }
+        let runtime = Runtime::new(db, self.program, rs);
         let mut result = BuildResult {
-            diagnostics: ra_ap_hir::attach_db(db, || self.program.check(db))
+            diagnostics: ra_ap_hir::attach_db(db, || runtime.check(db))
                 .iter()
                 .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor))
                 .collect::<std::result::Result<Vec<_>, _>>()
@@ -580,9 +589,7 @@ impl Profile {
         fs::create_dir_all(&self.directory).map_err(|error| {
             Error::from_reason(format!("cannot create bridge directory: {error}"))
         })?;
-        let source = ra_ap_hir::attach_db(db, || {
-            self.program.runtime(db).render_rs_ffi(db, &self.backend)
-        });
+        let source = ra_ap_hir::attach_db(db, || runtime.render_rs_ffi(db, &self.backend));
         let manifest = compiler::codegen::manifest::render_manifest(&self.crates);
         write_if_changed(&self.directory.join("lib.rs"), source.as_bytes())
             .and_then(|_| write_if_changed(&self.directory.join("Cargo.toml"), manifest.as_bytes()))

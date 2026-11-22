@@ -42,3 +42,9 @@ services:
           action: rebuild
         - path: ../../crates/runtime/src
           action: rebuild
+        - path: ../../crates/rustier/src
+          action: rebuild
+        - path: ../../crates/js-proc/src
+          action: rebuild
+        - path: ../../crates/js-syntax/src
+          action: rebuild

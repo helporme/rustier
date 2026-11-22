@@ -9,6 +9,12 @@ path = "<example-crate>"
 [dependencies.rustier]
 path = "<rustier>"
 
+[dependencies.rustier_js_proc]
+path = "<js-proc>"
+
+[dependencies.rustier_runtime]
+path = "<runtime>"
+
 [lib]
 crate-type = ["cdylib"]
 path = "lib.rs"
@@ -17,6 +23,15 @@ path = "lib.rs"
 edition = "2024"
 name = "rustier-macros"
 version = "0.0.0"
+
+[patch.crates-io.rustier]
+path = "<rustier>"
+
+[patch.crates-io.rustier_js_proc]
+path = "<js-proc>"
+
+[patch.crates-io.rustier_runtime]
+path = "<runtime>"
 
 [workspace]
 ```
