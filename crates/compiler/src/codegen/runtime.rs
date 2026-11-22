@@ -225,8 +225,7 @@ impl RsType {
             Self::JsValue => frag!(::rustier_runtime::JsValue::from({ value })).apply(p),
             Self::F64 => value.apply(p),
             Self::RustHandle { .. } => unreachable!(),
-            Self::F32 => frag!(({ value }).clamp(f32::MIN as f64, f32::MAX as f64) as f32).apply(p),
-            Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 => {
+            Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 | Self::F32 => {
                 let target = self.render();
                 frag!(({value}) as ~{target}).apply(p);
             }
@@ -392,6 +391,37 @@ impl<'db> RsMacro<'db> {
                 frag!(
                     if (typeof ~{argument} ~!== ~{expected_literal}) {{
                         throw new TypeError({message_literal});@
+                    }}@
+                )
+                .apply(p);
+
+                let (min, max): (i64, i64) = match type_ {
+                    RsType::I8 => (i8::MIN.into(), i8::MAX.into()),
+                    RsType::I16 => (i16::MIN.into(), i16::MAX.into()),
+                    RsType::I32 => (i32::MIN.into(), i32::MAX.into()),
+                    RsType::U8 => (0, u8::MAX.into()),
+                    RsType::U16 => (0, u16::MAX.into()),
+                    RsType::U32 => (0, u32::MAX.into()),
+                    RsType::F32 => {
+                        let max = f64::from(f32::MAX).to_string();
+                        let message =
+                            doubles(frag!({"Rustier input "}{index}{": number outside f32 range"}));
+                        frag!(
+                            if (Math.abs({argument}) > {max}) {{
+                                throw new TypeError({message});@
+                            }}@
+                        )
+                        .apply(p);
+                        continue;
+                    }
+                    _ => continue,
+                };
+                let message = doubles(frag!(
+                    {"Rustier input "}{index}{": expected integer in "}{type_.render()}{" range"}
+                ));
+                frag!(
+                    if (!Number.isInteger({argument}) || {argument} < {min} || {argument} > {max}) {{
+                        throw new TypeError({message});@
                     }}@
                 )
                 .apply(p);

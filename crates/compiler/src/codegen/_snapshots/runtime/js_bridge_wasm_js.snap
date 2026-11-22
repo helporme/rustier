@@ -103,6 +103,15 @@ export function __rustier_4ed8370a2f166702e2f5a0843a997b786794bcf8c4ed9c0c305b7e
 			"Rustier input 0: expected number"
 		);
 	}
+	if(
+		!Number.isInteger(
+			__rustier_arg_0
+		)||__rustier_arg_0<0||__rustier_arg_0>4294967295
+	){
+		throw new TypeError(
+			"Rustier input 0: expected integer in u32 range"
+		);
+	}
 	let __rustier_result;
 	try{
 		{

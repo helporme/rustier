@@ -54,6 +54,15 @@ export function __rustier_2f6349ad419e7a02ac7992dcadba7b82c716454108e6607a36cf62
 			"Rustier input 0: expected number"
 		);
 	}
+	if(
+		!Number.isInteger(
+			__rustier_arg_0
+		)||__rustier_arg_0<-128||__rustier_arg_0>127
+	){
+		throw new TypeError(
+			"Rustier input 0: expected integer in i8 range"
+		);
+	}
 	let __rustier_result;
 	{
 		const result = __rustier_exports.__rustier_2f6349ad419e7a02ac7992dcadba7b82c716454108e6607a36cf62af2e5bae39(

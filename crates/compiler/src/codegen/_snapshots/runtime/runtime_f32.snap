@@ -26,8 +26,7 @@ pub unsafe extern "C" fn __rustier_b0bd5aa85fa4fb9a4339717951a0ceaac1fc904c601e7
         use ::rustier::{JsCallError, JsEnv, JsMacro, JsValue, JsValueType};
         #[allow(unused_imports)]
         use ::rustier_js_proc::__js_in_rs as js;
-        let __rustier_arg_0 = (__rustier_handle_0)
-            .clamp(f32::MIN as f64, f32::MAX as f64) as f32;
+        let __rustier_arg_0 = (__rustier_handle_0) as f32;
         let __rustier_output = (|| -> f32 {
             let value: f32 = __rustier_arg_0;
             value
@@ -53,6 +52,15 @@ export function __rustier_b0bd5aa85fa4fb9a4339717951a0ceaac1fc904c601e74eb22e4cd
 	){
 		throw new TypeError(
 			"Rustier input 0: expected number"
+		);
+	}
+	if(
+		Math.abs(
+			__rustier_arg_0
+		)>340282346638528860000000000000000000000
+	){
+		throw new TypeError(
+			"Rustier input 0: number outside f32 range"
 		);
 	}
 	let __rustier_result;

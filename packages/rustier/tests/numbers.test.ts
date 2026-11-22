@@ -11,29 +11,22 @@ const integers = [
 ]
 
 for (const { name, min, max, echo } of integers) {
-  test(`${name} inputs and outputs saturate at their bounds`, () => {
+  test(`${name} accepts only integers within its bounds`, () => {
     for (const value of [0, 1, 42, min, min + 1, max - 1, max]) {
       expect(echo(value)).toBe(value)
     }
-    for (const value of [min - 0.5, min - 1, -Number.MAX_VALUE, -Infinity]) {
-      expect(echo(value)).toBe(min)
+    for (const value of [
+      min - 1, max + 1, min - 0.5, max + 0.5, min + 0.5, max - 0.5,
+      12.9, -12.9, Number.MIN_VALUE, -Number.MIN_VALUE,
+      Number.MAX_VALUE, -Number.MAX_VALUE, Infinity, -Infinity, NaN,
+    ]) {
+      expect(() => echo(value)).toThrow(TypeError)
     }
-    for (const value of [max + 0.5, max + 1, Number.MAX_VALUE, Infinity]) {
-      expect(echo(value)).toBe(max)
-    }
-    expect(echo(12.9)).toBe(12)
-    expect(echo(-12.9)).toBe(min < 0 ? -12 : 0)
-    expect(echo(max - 0.5)).toBe(max - 1)
-    expect(echo(min + 0.5)).toBe(min < 0 ? min + 1 : 0)
-    for (const value of [0.5, -0.5, Number.MIN_VALUE, -Number.MIN_VALUE]) {
-      expect(echo(value)).toBe(0)
-    }
-    expect(echo(NaN)).toBe(0)
     expect(echo(-0)).toBe(0)
   })
 }
 
-test('f32 rounds and clamps inputs', () => {
+test('f32 rounds inputs but rejects values outside its finite range', () => {
   const echo = (value: number) => rs`let value: f32 = ${value}; value`
   const max = (2 - 2 ** -23) * 2 ** 127
 
@@ -48,8 +41,8 @@ test('f32 rounds and clamps inputs', () => {
     expect(echo(value)).toBe(Math.fround(value))
   }
   for (const value of [max + 2 ** 103, 2 ** 128, Number.MAX_VALUE, Infinity]) {
-    expect(echo(value)).toBe(max)
-    expect(echo(-value)).toBe(-max)
+    expect(() => echo(value)).toThrow(TypeError)
+    expect(() => echo(-value)).toThrow(TypeError)
   }
 })
 
@@ -111,13 +104,13 @@ test('numeric inputs can return unit', () => {
 })
 
 test('numeric inputs are inferred through function calls and aliases', () => {
-  const value = 300
-
-  expect(rs`
+  const invoke = (value: number) => rs`
     type Number = u8;
     fn consume(value: Number) -> i16 { value as i16 - 1 }
     consume(${value})
-  `).toBe(254)
+  `
+  expect(invoke(255)).toBe(254)
+  expect(() => invoke(300)).toThrow(TypeError)
 })
 
 test('numeric inputs reject non-numbers without coercing them', () => {
@@ -171,6 +164,7 @@ test('all inputs are validated before the Rust body runs', () => {
   `
 
   expect(() => invoke('42')).toThrow('Rustier input 1: expected number')
+  expect(() => invoke(2 ** 31)).toThrow('Rustier input 1: expected integer in i32 range')
   expect(calls).toBe(0)
   expect(invoke(42)).toBe(42)
   expect(calls).toBe(1)
