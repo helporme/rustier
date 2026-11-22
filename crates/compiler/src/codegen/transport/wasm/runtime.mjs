@@ -121,137 +121,12 @@
     return args;
   }
 
-  function __rustier_js_strict_eq(left, right) {
-    return values[left >>> 0] === values[right >>> 0];
-  }
-
-  function __rustier_js_soft_eq(left, right) {
-    const a = values[left >>> 0];
-    const b = values[right >>> 0];
-    return a === b ? a !== 0 || 1 / a === 1 / b : a !== a && b !== b;
-  }
-
-  function __rustier_js_get(handle, key, failed) {
-    let result;
-    let error = 0;
+  function __rustier_js_exception_message(handle) {
     try {
-      result = Reflect.get(values[handle >>> 0], values[key >>> 0]);
+      return __rustier_js_insert(Reflect.get(values[handle >>> 0], "message"));
+    } catch {
+      return __rustier_js_insert(undefined);
     }
-    catch (exception) {
-      result = exception;
-      error = 1;
-    }
-    return valueResult(failed, result, error);
-  }
-
-  function reflectBoolean(operation, handle, key, value, failed) {
-    let result;
-    let error = 0;
-    try {
-      const accepted = Reflect[operation](values[handle >>> 0], values[key >>> 0], values[value >>> 0]);
-      if (typeof accepted !== "boolean") {
-        throw new TypeError(`Reflect.${operation} did not return a boolean`);
-      }
-      result = accepted ? 1 : 0;
-    }
-    catch (exception) {
-      result = __rustier_js_insert(exception);
-      error = 1;
-    }
-    new DataView(memory.buffer).setUint32(memoryIndex(failed), error, true);
-    return result;
-  }
-
-  function __rustier_js_set(handle, key, value, failed) {
-    return reflectBoolean("set", handle, key, value, failed);
-  }
-
-  function __rustier_js_has(handle, key, failed) {
-    return reflectBoolean("has", handle, key, 0, failed);
-  }
-
-  function __rustier_js_delete(handle, key, failed) {
-    return reflectBoolean("deleteProperty", handle, key, 0, failed);
-  }
-
-  function __rustier_js_define_property(handle, key, descriptor, failed) {
-    return reflectBoolean("defineProperty", handle, key, descriptor, failed);
-  }
-
-  function __rustier_js_get_own_property_descriptor(handle, key, failed) {
-    let result;
-    let error = 0;
-    try {
-      result = Reflect.getOwnPropertyDescriptor(values[handle >>> 0], values[key >>> 0]);
-    }
-    catch (exception) {
-      result = exception;
-      error = 1;
-    }
-    return valueResult(failed, result, error);
-  }
-
-  function __rustier_js_own_keys(handle, failed) {
-    let result;
-    let error = 0;
-    try {
-      result = Reflect.ownKeys(values[handle >>> 0]);
-    }
-    catch (exception) {
-      result = exception;
-      error = 1;
-    }
-    return valueResult(failed, result, error);
-  }
-
-  function __rustier_js_array_get(handle, index) {
-    return __rustier_js_insert(values[handle >>> 0][memoryIndex(index)]);
-  }
-
-  function __rustier_js_apply(handle, receiver, hasReceiver, args, len, failed) {
-    let result;
-    let error = 0;
-    try {
-      const argumentsList = argumentsFromMemory(args, len);
-      const thisValue = hasReceiver ? values[receiver >>> 0] : undefined;
-      result = Reflect.apply(values[handle >>> 0], thisValue, argumentsList);
-    }
-    catch (exception) {
-      result = exception;
-      error = 1;
-    }
-    return valueResult(failed, result, error);
-  }
-
-  function __rustier_js_call(handle, method, args, len, failed) {
-    let result;
-    let error = 0;
-    try {
-      const object = values[handle >>> 0];
-      const key = values[method >>> 0];
-      const argumentsList = argumentsFromMemory(args, len);
-      const functionValue = Reflect.get(object, key);
-      result = Reflect.apply(functionValue, object, argumentsList);
-    }
-    catch (exception) {
-      result = exception;
-      error = 1;
-    }
-    return valueResult(failed, result, error);
-  }
-
-  function __rustier_js_construct(handle, args, len, failed) {
-    let result;
-    let error = 0;
-    try {
-      const argumentsList = argumentsFromMemory(args, len);
-      result = Reflect.construct(values[handle >>> 0], argumentsList);
-    }
-    catch (exception) {
-      result = exception;
-      error = 1;
-    }
-    return valueResult(failed, result, error);
   }
 
   function __rustier_js_clone_ref(handle) {
@@ -294,19 +169,7 @@
     __rustier_js_string_encode,
     __rustier_js_buffer_length,
     __rustier_js_buffer_copy,
-    __rustier_js_strict_eq,
-    __rustier_js_soft_eq,
-    __rustier_js_get,
-    __rustier_js_set,
-    __rustier_js_has,
-    __rustier_js_delete,
-    __rustier_js_define_property,
-    __rustier_js_get_own_property_descriptor,
-    __rustier_js_own_keys,
-    __rustier_js_array_get,
-    __rustier_js_apply,
-    __rustier_js_call,
-    __rustier_js_construct,
+    __rustier_js_exception_message,
     __rustier_js_clone_ref,
     __rustier_js_take,
     __rustier_js_drop_ref,

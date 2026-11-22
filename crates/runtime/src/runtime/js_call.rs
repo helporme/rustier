@@ -2,7 +2,11 @@
 
 use std::{any::Any, error::Error, fmt};
 
-use crate::{JsEnv, JsValue, runtime::rust_handles::RustHandle, transport::JsEnvHandle};
+use crate::{
+    JsEnv, JsValue,
+    runtime::rust_handles::RustHandle,
+    transport::{JsEnvHandle, JsValueHandle},
+};
 
 /// An error from executing a `js!` call. A thrown JavaScript string or an
 /// exception's string `message` is preserved, but not the exception object.
@@ -27,10 +31,11 @@ impl Error for JsCallError {}
 
 impl From<JsValue> for JsCallError {
     fn from(thrown: JsValue) -> Self {
+        let thrown = JsValueHandle::from(thrown);
         Self(
             thrown
                 .to_string()
-                .or_else(|| thrown.get("message").ok()?.to_string())
+                .or_else(|| thrown.exception_message())
                 .unwrap_or_else(|| "JavaScript snippet threw an exception".into()),
         )
     }

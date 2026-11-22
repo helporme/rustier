@@ -18,38 +18,7 @@ unsafe extern "C" {
     fn __rustier_js_string_encode(handle: u32) -> u32;
     fn __rustier_js_buffer_length(handle: u32) -> f64;
     fn __rustier_js_buffer_copy(handle: u32, ptr: *mut u8, len: usize);
-    fn __rustier_js_strict_eq(left: u32, right: u32) -> bool;
-    fn __rustier_js_soft_eq(left: u32, right: u32) -> bool;
-    fn __rustier_js_get(handle: u32, key: u32, failed: *mut u32) -> u32;
-    fn __rustier_js_set(handle: u32, key: u32, value: u32, failed: *mut u32) -> u32;
-    fn __rustier_js_has(handle: u32, key: u32, failed: *mut u32) -> u32;
-    fn __rustier_js_delete(handle: u32, key: u32, failed: *mut u32) -> u32;
-    fn __rustier_js_own_keys(handle: u32, failed: *mut u32) -> u32;
-    fn __rustier_js_array_get(handle: u32, index: usize) -> u32;
-    fn __rustier_js_get_own_property_descriptor(handle: u32, key: u32, failed: *mut u32) -> u32;
-    fn __rustier_js_define_property(
-        handle: u32,
-        key: u32,
-        descriptor: u32,
-        failed: *mut u32,
-    ) -> u32;
-    fn __rustier_js_apply(
-        function: u32,
-        this: u32,
-        has_this: bool,
-        args: *const u32,
-        len: usize,
-        failed: *mut u32,
-    ) -> u32;
-    fn __rustier_js_call(
-        object: u32,
-        method: u32,
-        args: *const u32,
-        len: usize,
-        failed: *mut u32,
-    ) -> u32;
-    fn __rustier_js_construct(function: u32, args: *const u32, len: usize, failed: *mut u32)
-    -> u32;
+    fn __rustier_js_exception_message(handle: u32) -> u32;
     fn __rustier_js_clone_ref(handle: u32) -> u32;
     fn __rustier_js_drop_ref(handle: u32);
 }
@@ -139,138 +108,12 @@ impl JsValueHandle {
         Some(String::from_utf8(bytes).expect("JavaScript encoder returned invalid UTF-8"))
     }
 
-    pub fn strict_eq(&self, other: &Self) -> bool {
-        unsafe { __rustier_js_strict_eq(self.0, other.0) }
-    }
-
-    pub fn soft_eq(&self, other: &Self) -> bool {
-        unsafe { __rustier_js_soft_eq(self.0, other.0) }
-    }
-
-    pub fn get(&self, key: &Self) -> Result<Self, Self> {
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_get(self.0, key.0, &mut failed) };
-
-        Self::from_result(raw, failed)
-    }
-
-    pub fn set(&self, key: &Self, value: &Self) -> Result<bool, Self> {
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_set(self.0, key.0, value.0, &mut failed) };
-
-        Self::bool_result(raw, failed)
-    }
-
-    fn bool_result(raw: u32, failed: u32) -> Result<bool, Self> {
-        if failed == 0 {
-            Ok(raw != 0)
-        } else {
-            Err(Self(raw, PhantomData))
-        }
-    }
-
-    fn from_result(raw: u32, failed: u32) -> Result<Self, Self> {
-        let value = Self(raw, PhantomData);
-
-        if failed == 0 { Ok(value) } else { Err(value) }
-    }
-
-    pub fn has(&self, key: &Self) -> Result<bool, Self> {
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_has(self.0, key.0, &mut failed) };
-
-        Self::bool_result(raw, failed)
-    }
-
-    pub fn delete(&self, key: &Self) -> Result<bool, Self> {
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_delete(self.0, key.0, &mut failed) };
-
-        Self::bool_result(raw, failed)
-    }
-
-    pub fn define_property(&self, key: &Self, descriptor: &Self) -> Result<bool, Self> {
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_define_property(self.0, key.0, descriptor.0, &mut failed) };
-
-        Self::bool_result(raw, failed)
-    }
-
-    pub fn get_own_property_descriptor(&self, key: &Self) -> Result<Self, Self> {
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_get_own_property_descriptor(self.0, key.0, &mut failed) };
-
-        Self::from_result(raw, failed)
-    }
-
-    pub fn own_keys(&self) -> Result<Vec<Self>, Self> {
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_own_keys(self.0, &mut failed) };
-        let keys = Self::from_result(raw, failed)?;
-        let length = unsafe { __rustier_js_buffer_length(keys.0) } as usize;
-
-        Ok((0..length)
-            .map(|index| {
-                Self(
-                    unsafe { __rustier_js_array_get(keys.0, index) },
-                    PhantomData,
-                )
-            })
-            .collect())
-    }
-
-    fn apply_with<'a>(
-        &self,
-        this: Option<&Self>,
-        args: impl IntoIterator<Item = &'a Self>,
-    ) -> Result<Self, Self> {
-        let args = args.into_iter().map(|value| value.0).collect::<Vec<_>>();
-        let mut failed = 0;
-        let raw = unsafe {
-            __rustier_js_apply(
-                self.0,
-                this.map_or(0, |value| value.0),
-                this.is_some(),
-                args.as_ptr(),
-                args.len(),
-                &mut failed,
-            )
-        };
-
-        Self::from_result(raw, failed)
-    }
-
-    pub fn apply<'a>(&self, args: impl IntoIterator<Item = &'a Self>) -> Result<Self, Self> {
-        self.apply_with(None, args)
-    }
-
-    pub fn apply_as<'a>(
-        &self,
-        this: &Self,
-        args: impl IntoIterator<Item = &'a Self>,
-    ) -> Result<Self, Self> {
-        self.apply_with(Some(this), args)
-    }
-
-    pub fn call<'a>(
-        &self,
-        method: &Self,
-        args: impl IntoIterator<Item = &'a Self>,
-    ) -> Result<Self, Self> {
-        let args = args.into_iter().map(|value| value.0).collect::<Vec<_>>();
-        let mut failed = 0;
-        let raw =
-            unsafe { __rustier_js_call(self.0, method.0, args.as_ptr(), args.len(), &mut failed) };
-
-        Self::from_result(raw, failed)
-    }
-
-    pub fn construct<'a>(&self, args: impl IntoIterator<Item = &'a Self>) -> Result<Self, Self> {
-        let args = args.into_iter().map(|value| value.0).collect::<Vec<_>>();
-        let mut failed = 0;
-        let raw = unsafe { __rustier_js_construct(self.0, args.as_ptr(), args.len(), &mut failed) };
-
-        Self::from_result(raw, failed)
+    pub(crate) fn exception_message(&self) -> Option<String> {
+        Self(
+            unsafe { __rustier_js_exception_message(self.0) },
+            PhantomData,
+        )
+        .to_string()
     }
 
     pub fn into_raw(self) -> u32 {

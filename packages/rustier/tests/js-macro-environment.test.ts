@@ -10,7 +10,7 @@ test('an opaque deferred call can use the environment of a JS value', () => {
   const parent = { child: {} }
   expect(rs`
     let parent: JsValue = ${parent};
-    let child = parent.get("child").unwrap();
+    let child = js!(return @{parent}.child).unwrap();
     let call = handy_crate::deferred(32u32);
     let env: JsEnv = child.env();
     call.at(env)

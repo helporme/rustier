@@ -5,7 +5,7 @@ expression: output
 ```rust
 fn __rustier_probe(__rustier_env: ::rustier_runtime::JsEnv) {
     #[allow(unused_imports)]
-    use ::rustier::{JsCallError, JsEnv, JsMacro, JsValue, JsValueType, Key};
+    use ::rustier::{JsCallError, JsEnv, JsMacro, JsValue, JsValueType};
     #[allow(unused_imports)]
     use ::rustier_js_proc::__js_in_rs as js;
     let __rustier_snippet = |__rustier_arg_0, __rustier_arg_1| {

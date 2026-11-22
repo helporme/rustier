@@ -36,12 +36,13 @@ test('accepts multiple strings alongside other runtime types', () => {
     expect(rs`
       let left: String = ${left};
       let number: u32 = ${number};
-      let other = ${other};
+      let other: JsValue = ${other};
       let _: () = ${undefined};
       let flag: bool = ${flag};
       let right: String = ${right};
-      let same = ${other};
-      if flag && number == 42 && other.strict_eq(&same) { left + &right } else { right }
+      let same: JsValue = ${other};
+      let equal = js!(return @{other} === @{same}).unwrap().as_bool().unwrap();
+      if flag && number == 42 && equal { left + &right } else { right }
     `).toBe(flag ? 'hello🦀' : '🦀')
   }
   expect(rs`let _: String = ${left}; ${other}`).toBe(other)
@@ -66,9 +67,9 @@ test('string validation precedes Rust execution', () => {
   let calls = 0
   const callback = () => { calls++ }
   const invoke = (value: unknown) => rs`
-    let callback = ${callback};
+    let callback: JsValue = ${callback};
     let text: String = ${value};
-    callback.apply(&[]).unwrap();
+    js!(@{callback}()).unwrap();
     text
   `
 

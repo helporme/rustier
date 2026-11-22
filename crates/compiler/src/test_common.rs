@@ -12,7 +12,6 @@ const RUNTIME: &str = r#"
     pub struct JsCallError;
     pub trait JsMacro {}
     pub enum JsValueType {}
-    pub enum Key {}
     #[macro_export]
     macro_rules! __js_in_rs { () => { () }; }
     pub mod runtime {
@@ -21,7 +20,6 @@ const RUNTIME: &str = r#"
             pub struct JsEnv;
             impl JsValue {
                 pub fn clone(&self) -> Self { loop {} }
-                pub fn strict_eq(&self, other: &Self) -> bool { loop {} }
                 pub fn discard(self) {}
             }
         }

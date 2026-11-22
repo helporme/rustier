@@ -164,9 +164,9 @@ test('all inputs are validated before the Rust body runs', () => {
   let calls = 0
   const callback = () => { calls++ }
   const invoke = (value: unknown) => rs`
-    let callback = ${callback};
+    let callback: JsValue = ${callback};
     let value: i32 = ${value};
-    callback.apply(&[]).unwrap();
+    js!(@{callback}()).unwrap();
     value
   `
 
@@ -184,11 +184,12 @@ test('numbers, handles, and unit inputs retain their positions', () => {
 
   expect(rs`
     let left: i16 = ${left};
-    let object = ${object};
+    let object: JsValue = ${object};
     let _: () = ${unit};
     let right: f64 = ${right};
-    let other = ${object};
-    if object.strict_eq(&other) { left as f64 + right } else { 0.0 }
+    let other: JsValue = ${object};
+    let same = js!(return @{object} === @{other}).unwrap().as_bool().unwrap();
+    if same { left as f64 + right } else { 0.0 }
   `).toBe(42)
   expect(rs`
     let _: u8 = ${left};

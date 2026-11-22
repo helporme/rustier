@@ -87,8 +87,8 @@ test('reentrant calls cannot move a borrowed value and release locks after retur
 
   rs`
     let message: &handy_crate::Message = ${message};
-    let callback = ${callback};
-    callback.apply(&[]).unwrap();
+    let callback: JsValue = ${callback};
+    js!(@{callback}()).unwrap();
     assert_eq!(message.0, "Hello");
   `
   expect(calls).toBe(1)

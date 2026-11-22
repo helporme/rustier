@@ -50,7 +50,14 @@ test('runs the selected snippet and moves owned Rust inputs', () => {
 })
 
 test('surfaces thrown JavaScript errors', () => {
-  expect(() => rs`js!(throw new Error("boom"))`).toThrow('boom')
+  const fail = (thrown: unknown) => rs`
+    let thrown: JsValue = ${thrown};
+    js!(throw @{thrown})
+  `
+  expect(() => fail(new Error('boom'))).toThrow('boom')
+  expect(() => fail('thrown string')).toThrow('thrown string')
+  expect(() => fail({ get message() { throw new Error('getter failed') } }))
+    .toThrow('JavaScript snippet threw an exception')
 })
 
 test('preserves line-sensitive JavaScript and adjacent operator tokens', () => {

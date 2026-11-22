@@ -335,7 +335,10 @@ impl<'db> RsMacro<'db> {
 
                 let body = frag!(
                     let __rustier_env = ::rustier_runtime::JsEnv::from({env});@
-                    {super::RS_IMPORTS}
+                    #[allow(unused_imports)]@
+                    use ::rustier::{{JsCallError, JsEnv, JsMacro, JsValue, JsValueType}};@
+                    #[allow(unused_imports)]@
+                    use ::rustier_js_proc::__js_in_rs as js;@
                     {conversions}@
                     let __rustier_output = {"(|| -> "}{ret_type}{" {\n"}{body}{"\n})();"}@
                     {output}
@@ -552,7 +555,7 @@ mod tests {
                 RsPart::Input,
                 RsPart::Text("; let right = ".into()),
                 RsPart::Input,
-                RsPart::Text("; if left.strict_eq(&right) { left } else { right }".into()),
+                RsPart::Text("; let _ = left; right".into()),
             ]),
         );
     }

@@ -31,11 +31,11 @@ test.each([true, false])('mixes booleans, numbers, unit and JS handles for %s', 
       if flag && !other && number == 42 { left } else { right }
     `).toBe(flag ? left : right)
     expect(rs`
-      let left = ${left};
+      let left: JsValue = ${left};
       let flag: bool = ${flag};
       let number: f64 = ${number};
-      let right = ${right};
-      flag && number == 42.0 && !left.strict_eq(&right)
+      let right: JsValue = ${right};
+      flag && number == 42.0 && js!(return @{left} !== @{right}).unwrap().as_bool().unwrap()
     `).toBe(flag)
   }
 })
@@ -61,9 +61,9 @@ test('boolean validation precedes Rust execution', () => {
   let calls = 0
   const callback = () => { calls++ }
   const invoke = (value: unknown) => rs`
-    let callback = ${callback};
+    let callback: JsValue = ${callback};
     let flag: bool = ${value};
-    callback.apply(&[]).unwrap();
+    js!(@{callback}()).unwrap();
     flag
   `
 
