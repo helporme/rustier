@@ -7,3 +7,7 @@ edition = "2024"
 rustier = { path = "../../../../crates/rustier" }
 
 [workspace]
+
+[features]
+invalid-js = []
+nested-rs = []

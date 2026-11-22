@@ -1,34 +1,44 @@
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { defineConfig, type Plugin } from 'vitest/config'
-import rustier, { type RustierProfile } from 'rustier-legacy-tests/rolldown'
+import { Server, type BackendOptions } from '../../crates/server/dist/rustier-server.js'
 
 const crates = {
   'handy-crate': { path: fileURLToPath(new URL('./tests/handy-crate', import.meta.url)) },
 }
 
-const profiles = {
-  node: { platform: { type: 'node' }, crates, procMacros: true },
-  wasm32: { platform: { type: 'wasm', loading: 'node-js', mem64: false }, crates, procMacros: true },
-  wasm64: { platform: { type: 'wasm', loading: 'node-js', mem64: true }, crates, procMacros: true },
-} satisfies Record<string, RustierProfile>
+const backends = {
+  node: { type: 'node' },
+  wasm32: { type: 'wasm', loading: 'node-js', mem64: false },
+  wasm64: { type: 'wasm', loading: 'node-js', mem64: true },
+} satisfies Record<string, BackendOptions>
 
-let activeProfile = 'node'
-const plugin = rustier({ profiles, activeProfile: () => activeProfile })
-const transform = (plugin as Plugin).transform!
-const transformHandler = typeof transform === 'function' ? transform : transform.handler
-
-function diagnosticsPlugin(profile: string): Plugin {
-  const prefix = `\0$build/diags/${profile}/`
-
+function rustierTests(profile: string, backend: BackendOptions): Plugin {
+  const runtime = `rustier:tests/${profile}/`
+  const diags = `\0$build/diags/${profile}/`
+  const server = new Server({ rootDir: process.cwd(), profiles: { [profile]: { backend, crates, procMacros: true } } })
+  let revision = 0
   return {
-    name: 'rustier-test-diagnostics',
-    resolveId(source, importer) {
-      if (source === '$build/diags') return prefix + encodeURIComponent(importer ?? '')
+    name: `rustier-tests-${profile}`,
+    enforce: 'post',
+    transform(code, id) {
+      if (!id.endsWith('.test.ts') || !code.includes('rustier')) return
+      const { edits } = server.transformModule(profile, id, code, runtime + ++revision)
+      if (!edits.length) return
+      for (const edit of edits.reverse()) {
+        code = code.slice(0, edit.start) + edit.text + code.slice(edit.end)
+      }
+      return code
+    },
+    resolveId(id, importer) {
+      if (id.startsWith(runtime)) return '\0' + id
+      if (id === '$build/diags') return diags + importer
     },
     load(id) {
-      if (id.startsWith(prefix)) {
-        return `export const rustierDiags = ${JSON.stringify(plugin.api.check(profile))};`
-      }
+      if (id.startsWith(diags)) return `export const rustierDiags = ${JSON.stringify(server.check(profile))}`
+      if (!id.startsWith('\0' + runtime)) return
+      const { binFfiPath, diagnostics } = server.build(profile)
+      if (!binFfiPath) this.error(diagnostics.join('\n') || 'No Rustier test binary')
+      return server.renderJsFfi(profile, backend.type === 'node' ? binFfiPath : pathToFileURL(binFfiPath).href)
     },
   }
 }
@@ -37,20 +47,12 @@ export default defineConfig({
   test: {
     maxWorkers: 1,
     fileParallelism: false,
-    projects: Object.keys(profiles).map(name => ({
+    projects: [...Object.entries(backends).map(([name, backend]) => ({
       logLevel: 'error',
-      plugins: [{
-        ...plugin,
-        transform(code, id, options) {
-          activeProfile = name
-          return transformHandler.call(this, code, id, options)
-        },
-      }, diagnosticsPlugin(name)],
-      test: {
-        name,
-        include: ['tests/*.test.ts'],
-      },
-    })),
+      plugins: [rustierTests(name, backend)],
+      test: { name, include: ['tests/*.test.ts'], exclude: ['tests/js-macro-invalid.test.ts'] },
+    })), {
+      test: { name: 'invalid-js', include: ['tests/js-macro-invalid.test.ts'] },
+    }],
   },
 })
-

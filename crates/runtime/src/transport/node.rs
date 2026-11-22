@@ -57,8 +57,14 @@ struct CallbackData<T> {
 }
 
 impl JsEnvHandle {
-    /// Allocates stable callback data for the addon's entry pointsh.
-    pub fn allocate_callback_data<T: 'static>(&self, state: T) -> Result<*mut c_void, napi_status> {
+    /// Allocates data shared by the addon's entry points until environment cleanup.
+    ///
+    /// # Safety
+    /// `env` must be the live Node environment on its owning thread.
+    pub unsafe fn allocate_static_data<T: 'static>(
+        env: napi_env,
+        state: T,
+    ) -> Result<*mut c_void, napi_status> {
         unsafe extern "C" fn cleanup<T>(data: *mut c_void) {
             drop(unsafe { Box::from_raw(data.cast::<CallbackData<T>>()) });
         }
@@ -68,9 +74,7 @@ impl JsEnvHandle {
             state,
         }))
         .cast();
-        let status = unsafe {
-            napi_sys::napi_add_env_cleanup_hook(self.0 as napi_env, Some(cleanup::<T>), data)
-        };
+        let status = unsafe { napi_sys::napi_add_env_cleanup_hook(env, Some(cleanup::<T>), data) };
         if status != Status::napi_ok {
             unsafe { cleanup::<T>(data) };
             return Err(status);
@@ -82,7 +86,7 @@ impl JsEnvHandle {
     ///
     /// # Safety
     /// The borrow must end before Node starts cleaning up this environment.
-    pub unsafe fn callback_data<T: 'static>(&self) -> Option<&T> {
+    pub unsafe fn static_data<T: 'static>(&self) -> Option<&T> {
         // All CallbackData allocations start with the same repr(C) type tag.
         let kind = unsafe { self.1.cast::<TypeId>().as_ref() }?;
         (*kind == TypeId::of::<T>()).then(|| unsafe { &(*self.1.cast::<CallbackData<T>>()).state })
@@ -90,17 +94,10 @@ impl JsEnvHandle {
 
     /// # Safety
     /// `raw` must be a live Node environment on its owning thread; `data` must
-    /// be null or callback data allocated for it by `allocate_callback_data`.
+    /// be null or callback data allocated for it by `allocate_static_data`.
     /// Neither handle may be used after environment cleanup begins.
-    pub unsafe fn from_callback(raw: usize, data: *mut c_void) -> Self {
-        Self(raw, data, PhantomData)
-    }
-
-    /// # Safety
-    ///
-    /// `raw` must be a live Node-API environment on the current thread.
-    pub unsafe fn from_raw(raw: usize) -> Self {
-        Self(raw, ptr::null_mut(), PhantomData)
+    pub unsafe fn from_raw(raw: napi_env, data: *mut c_void) -> Self {
+        Self(raw as usize, data, PhantomData)
     }
 
     pub fn into_raw(self) -> usize {

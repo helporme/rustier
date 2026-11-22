@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "test": "pnpm run build && vitest run && pnpm --filter library-example run build",
+    "test": "pnpm run build && pnpm --dir ../../crates/server run build && vitest run && pnpm --filter library-example run build",
     "check": "tsc --noEmit",
     "prepublishOnly": "node ./npm/publish.mjs"
   },
