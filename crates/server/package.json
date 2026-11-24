@@ -8,6 +8,7 @@
   "files": ["dist"],
   "scripts": {
     "build": "napi build --manifest-path Cargo.toml --platform --esm --js rustier-server.js --dts rustier-server.d.ts --output-dir dist",
+    "build:dev": "pnpm run build --features compiler/local-runtime",
     "build:release": "pnpm run build --release"
   },
   "devDependencies": {

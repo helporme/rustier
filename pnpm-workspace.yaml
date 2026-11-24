@@ -1,9 +1,13 @@
 packages:
   - packages/rustier
+  - packages/rustier/npm/*
   - packages/site
   - packages/site-compiler-service
   - crates/server
   - examples/*
+# Use the bindings built alongside the plugin; its published manifests still
+# pin exact registry versions for consumers outside this workspace.
+linkWorkspacePackages: true
 allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:

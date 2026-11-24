@@ -6,6 +6,9 @@ description = "Rustier's macro-based compiler."
 license = "MIT"
 repository = "https://github.com/helporme/rustier"
 
+[features]
+local-runtime = []
+
 [dependencies]
 rustier_js_syntax = { path = "../js-syntax" }
 blake3 = "1"

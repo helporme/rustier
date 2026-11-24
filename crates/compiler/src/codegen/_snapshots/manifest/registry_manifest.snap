@@ -1,0 +1,28 @@
+---
+source: src/codegen/manifest.rs
+expression: "format!(\"```toml\\n{manifest}```\\n\")"
+---
+```toml
+[dependencies.example]
+path = "<example-crate>"
+
+[dependencies.rustier]
+version = "=<compiler-version>"
+
+[dependencies.rustier_js_proc]
+version = "=<compiler-version>"
+
+[dependencies.rustier_runtime]
+version = "=<compiler-version>"
+
+[lib]
+crate-type = ["cdylib"]
+path = "lib.rs"
+
+[package]
+edition = "2024"
+name = "rustier-macros"
+version = "0.0.0"
+
+[workspace]
+```

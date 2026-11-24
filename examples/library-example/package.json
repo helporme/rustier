@@ -15,7 +15,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "rebuild": "pnpm run rebuild:plugin && pnpm run build",
-    "rebuild:plugin": "pnpm --filter rustier run build"
+    "rebuild:plugin": "pnpm --filter rustier run build:dev"
   },
   "devDependencies": {
     "rustier": "workspace:*",

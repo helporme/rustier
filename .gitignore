@@ -15,3 +15,5 @@ target/
 /crates/server/.*.prepared.tmp
 /crates/server/.*.retired.tmp
 /crates/server/.*.rollback.tmp
+
+packages/rustier/npm
