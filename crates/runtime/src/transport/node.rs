@@ -108,6 +108,39 @@ impl JsEnvHandle {
         })
     }
 
+    pub(crate) fn new_i64(&self, value: i64) -> JsValueHandle {
+        JsValueHandle::new(*self, |env, output| unsafe {
+            napi_sys::napi_create_bigint_int64(env, value, output)
+        })
+    }
+
+    pub(crate) fn new_u64(&self, value: u64) -> JsValueHandle {
+        JsValueHandle::new(*self, |env, output| unsafe {
+            napi_sys::napi_create_bigint_uint64(env, value, output)
+        })
+    }
+
+    pub fn new_i128(&self, value: i128) -> JsValueHandle {
+        self.bigint_from_words(value.is_negative(), value.unsigned_abs())
+    }
+
+    pub fn new_u128(&self, value: u128) -> JsValueHandle {
+        self.bigint_from_words(false, value)
+    }
+
+    fn bigint_from_words(&self, negative: bool, magnitude: u128) -> JsValueHandle {
+        let words = [magnitude as u64, (magnitude >> 64) as u64];
+        JsValueHandle::new(*self, |env, output| unsafe {
+            napi_sys::napi_create_bigint_words(
+                env,
+                negative.into(),
+                words.len(),
+                words.as_ptr(),
+                output,
+            )
+        })
+    }
+
     pub fn new_string(&self, value: &str) -> JsValueHandle {
         JsValueHandle::new(*self, |env, output| unsafe {
             napi_create_string_utf8(env, value.as_ptr().cast(), value.len() as isize, output)
@@ -335,6 +368,50 @@ impl JsValueHandle {
         self.read(ValueType::napi_number, |env, value| {
             call(|output| unsafe { napi_get_value_double(env, value, output) })
         })
+    }
+
+    pub(crate) fn as_i64(&self) -> Option<i64> {
+        self.with_value(|env, value| {
+            let mut result = 0;
+            let mut lossless = false;
+            let status = unsafe {
+                napi_sys::napi_get_value_bigint_int64(env, value, &mut result, &mut lossless)
+            };
+            (status == Status::napi_ok && lossless).then_some(result)
+        })
+    }
+
+    pub(crate) fn as_u64(&self) -> Option<u64> {
+        self.with_value(|env, value| {
+            let mut result = 0;
+            let mut lossless = false;
+            let status = unsafe {
+                napi_sys::napi_get_value_bigint_uint64(env, value, &mut result, &mut lossless)
+            };
+            (status == Status::napi_ok && lossless).then_some(result)
+        })
+    }
+
+    pub(super) fn bigint_parts(&self) -> Option<(bool, u128)> {
+        self.read(ValueType::napi_bigint, |env, value| {
+            let mut words = [0u64; 2];
+            let mut count = words.len();
+            let sign: i32 = call(|sign| unsafe {
+                napi_sys::napi_get_value_bigint_words(
+                    env,
+                    value,
+                    sign,
+                    &mut count,
+                    words.as_mut_ptr(),
+                )
+            });
+            (count <= words.len()).then(|| {
+                (
+                    sign != 0,
+                    (u128::from(words[1]) << 64) | u128::from(words[0]),
+                )
+            })
+        })?
     }
 
     pub fn as_bool(&self) -> Option<bool> {

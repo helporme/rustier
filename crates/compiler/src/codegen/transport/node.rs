@@ -131,17 +131,27 @@ impl TransportBackendNode {
                     TransportTypeRs::Void => frag!(
                         let __rustier_handle_{index} = ();@
                     ).apply(p),
-                    TransportTypeRs::Usize => frag!(
-                        let mut raw: u64 = 0;@
-                        let mut lossless = false;@
-                        let status = unsafe {{
-                            __rustier_napi::napi_get_value_bigint_uint64(env, __rustier_args[{index}], &mut raw, &mut lossless)
-                        }};@
-                        if status != __rustier_napi::Status::napi_ok || !lossless {{
-                            panic!("Expected a lossless unsigned pointer-sized integer");@
-                        }}@
-                        let __rustier_handle_{index} = usize::try_from(raw).expect("Integer exceeds usize");@
+                    TransportTypeRs::I128 | TransportTypeRs::U128 => frag!(
+                        let __rustier_handle_{index} = unsafe {{
+                            __RustierValueHandle::from_napi_value(__rustier_args[{index}] as usize, __rustier_env_handle)
+                        }}.as_{type_.rust_name()}().expect("Expected a validated bigint");@
                     ).apply(p),
+                    TransportTypeRs::Usize | TransportTypeRs::I64 | TransportTypeRs::U64 => {
+                        let suffix = if *type_ == TransportTypeRs::I64 { "int64" } else { "uint64" };
+                        let target = type_.rust_name();
+                        let error = format!("c\"Rustier input {index}: bigint outside {target} range\"");
+                        frag!(
+                            let mut raw = 0;@
+                            let mut lossless = false;@
+                            let status = unsafe {{
+                                __rustier_napi::napi_get_value_bigint_{suffix}(env, __rustier_args[{index}], &mut raw, &mut lossless)
+                            }};@
+                            let (__rustier_napi::Status::napi_ok, true, Ok(__rustier_handle_{index})) = (status, lossless, {target}::try_from(raw)) else {{
+                                unsafe {{ __rustier_napi::napi_throw_type_error(env, ::std::ptr::null(), {error}.as_ptr()); }}@
+                                return ::std::ptr::null_mut();@
+                            }};@
+                        ).apply(p);
+                    }
                     TransportTypeRs::F64 => frag!(
                         let mut __rustier_handle_{index}: f64 = 0.0;@
                         let status = unsafe {{
@@ -191,18 +201,24 @@ impl TransportBackendNode {
                 }}@
                 undefined
             }}).apply(p),
-            TransportTypeRs::Usize => frag!(
-                {{
-                    let mut value = ::std::ptr::null_mut();@
-                    let status = unsafe {{
-                        __rustier_napi::napi_create_bigint_uint64(env, __rustier_output as u64, &mut value)
-                    }};@
-                    if status != __rustier_napi::Status::napi_ok {{
-                        panic!("Could not create a JavaScript bigint");@
-                    }}@
-                    value
-                }}
+            kind @ (TransportTypeRs::I128 | TransportTypeRs::U128) => frag!(
+                unsafe {{ __rustier_env_handle.new_{kind.rust_name()}(__rustier_output).into_napi_value() as __rustier_napi::napi_value }}
             ).apply(p),
+            kind @ (TransportTypeRs::Usize | TransportTypeRs::I64 | TransportTypeRs::U64) => {
+                let (suffix, raw) = if kind == TransportTypeRs::I64 { ("int64", "i64") } else { ("uint64", "u64") };
+                frag!(
+                    {{
+                        let mut value = ::std::ptr::null_mut();@
+                        let status = unsafe {{
+                            __rustier_napi::napi_create_bigint_{suffix}(env, __rustier_output as ~{raw}, &mut value)
+                        }};@
+                        if status != __rustier_napi::Status::napi_ok {{
+                            panic!("Could not create a JavaScript bigint");@
+                        }}@
+                        value
+                    }}
+                ).apply(p);
+            }
             TransportTypeRs::F64 => frag!(
                 {{
                     let mut value = ::std::ptr::null_mut();@

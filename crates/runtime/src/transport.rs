@@ -38,3 +38,19 @@ pub enum JsValueType {
     Object = 7,
     Function = 8,
 }
+
+impl JsValueHandle {
+    pub fn as_u128(&self) -> Option<u128> {
+        let (negative, magnitude) = self.bigint_parts()?;
+        (!negative).then_some(magnitude)
+    }
+
+    pub fn as_i128(&self) -> Option<i128> {
+        let (negative, magnitude) = self.bigint_parts()?;
+        if negative && magnitude == i128::MIN.unsigned_abs() {
+            return Some(i128::MIN);
+        }
+        let value = i128::try_from(magnitude).ok()?;
+        Some(if negative { -value } else { value })
+    }
+}

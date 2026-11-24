@@ -202,11 +202,21 @@ pub enum RsType {
     U8,
     U16,
     U32,
+    BigInt(BigIntType),
     F32,
     F64,
     Void,
     JsValue,
     RustHandle { borrow: HandleBorrow },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
+pub enum BigIntType {
+    Usize,
+    I64,
+    U64,
+    I128,
+    U128,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, salsa::Update)]
@@ -222,6 +232,7 @@ pub enum JsType {
     String,
     Boolean,
     Number,
+    BigInt,
     Undefined,
     Any,
     RustHandle,
@@ -235,6 +246,7 @@ impl RsType {
             Self::Bool => JsType::Boolean,
             Self::Void => JsType::Undefined,
             Self::JsValue => JsType::Any,
+            Self::BigInt(_) => JsType::BigInt,
             Self::RustHandle { .. } => JsType::RustHandle,
             Self::I8
             | Self::I16

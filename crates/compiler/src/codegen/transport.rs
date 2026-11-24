@@ -1,7 +1,7 @@
 use crate::{
     codegen::fragment::{FragmentOnce, fragment},
     db::Db,
-    ir::transport::TransportFunction,
+    ir::transport::{TransportFunction, TransportTypeRs},
 };
 
 mod node;
@@ -15,6 +15,23 @@ pub use wasm::{TransportBackendWasm, WasmImport};
 pub enum TransportBackend {
     Node(TransportBackendNode),
     Wasm(TransportBackendWasm),
+}
+
+impl TransportTypeRs {
+    pub(super) fn rust_name(self) -> &'static str {
+        match self {
+            Self::String => "::std::string::String",
+            Self::Bool => "bool",
+            Self::F64 => "f64",
+            Self::Usize => "usize",
+            Self::I64 => "i64",
+            Self::U64 => "u64",
+            Self::I128 => "i128",
+            Self::U128 => "u128",
+            Self::Void => "()",
+            Self::JsValueHandle => "::rustier_runtime::transport::JsValueHandle",
+        }
+    }
 }
 
 pub(super) fn render_transport_preamble_js(

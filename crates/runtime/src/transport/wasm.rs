@@ -9,6 +9,13 @@ use super::JsValueType;
 unsafe extern "C" {
     fn __rustier_js_set_error(ptr: *const u8, len: usize);
     fn __rustier_js_new_number(value: f64) -> u32;
+    fn __rustier_js_new_i64(value: i64) -> u32;
+    fn __rustier_js_new_u64(value: u64) -> u32;
+    fn __rustier_js_i64(handle: u32, invalid: *mut u8) -> i64;
+    fn __rustier_js_u64(handle: u32, invalid: *mut u8) -> u64;
+    fn __rustier_js_new_i128(low: u64, high: i64) -> u32;
+    fn __rustier_js_new_u128(low: u64, high: u64) -> u32;
+    fn __rustier_js_bigint_two_words(handle: u32, words: *mut [u64; 2]) -> i32;
     fn __rustier_js_new_string(ptr: *const u8, len: usize) -> u32;
     fn __rustier_js_new_boolean(value: bool) -> u32;
     fn __rustier_js_new_symbol(ptr: *const u8, len: usize, has_description: bool) -> u32;
@@ -43,6 +50,24 @@ impl JsEnvHandle {
 
     pub(crate) fn new_number(&self, value: f64) -> JsValueHandle {
         JsValueHandle(unsafe { __rustier_js_new_number(value) }, PhantomData)
+    }
+
+    pub(crate) fn new_i64(&self, value: i64) -> JsValueHandle {
+        JsValueHandle(unsafe { __rustier_js_new_i64(value) }, PhantomData)
+    }
+
+    pub(crate) fn new_u64(&self, value: u64) -> JsValueHandle {
+        JsValueHandle(unsafe { __rustier_js_new_u64(value) }, PhantomData)
+    }
+
+    pub fn new_i128(&self, value: i128) -> JsValueHandle {
+        let raw = unsafe { __rustier_js_new_i128(value as u64, (value >> 64) as i64) };
+        JsValueHandle(raw, PhantomData)
+    }
+
+    pub fn new_u128(&self, value: u128) -> JsValueHandle {
+        let raw = unsafe { __rustier_js_new_u128(value as u64, (value >> 64) as u64) };
+        JsValueHandle(raw, PhantomData)
     }
 
     pub fn new_string(&self, value: &str) -> JsValueHandle {
@@ -103,6 +128,29 @@ impl JsValueHandle {
 
     pub fn as_f64(&self) -> Option<f64> {
         (self.type_of() == JsValueType::Number).then(|| unsafe { __rustier_js_number(self.0) })
+    }
+
+    pub(crate) fn as_i64(&self) -> Option<i64> {
+        let mut invalid = 0;
+        let value = unsafe { __rustier_js_i64(self.0, &mut invalid) };
+        (invalid == 0).then_some(value)
+    }
+
+    pub(crate) fn as_u64(&self) -> Option<u64> {
+        let mut invalid = 0;
+        let value = unsafe { __rustier_js_u64(self.0, &mut invalid) };
+        (invalid == 0).then_some(value)
+    }
+
+    pub(super) fn bigint_parts(&self) -> Option<(bool, u128)> {
+        let mut words = [0u64; 2];
+        let sign = unsafe { __rustier_js_bigint_two_words(self.0, &mut words) };
+        (sign >= 0).then(|| {
+            (
+                sign != 0,
+                (u128::from(words[1]) << 64) | u128::from(words[0]),
+            )
+        })
     }
 
     pub fn as_bool(&self) -> Option<bool> {

@@ -52,6 +52,10 @@ impl<T: ?Sized> OwnedInput<&()> for &mut T {}
 pub enum Input {
     /// A supported Rust integer or float represented as a JavaScript number.
     Number(f64),
+    I64(i64),
+    U64(u64),
+    I128(i128),
+    U128(u128),
     /// A Rust boolean.
     Boolean(bool),
     /// Rust `()`, passed to JavaScript as `undefined`.
@@ -73,6 +77,21 @@ impl Input {
             })* };
         }
         numbers!(i8, i16, i32, u8, u16, u32, f32, f64);
+        if let Some(n) = any.downcast_ref::<i64>() {
+            return Self::I64(*n);
+        }
+        if let Some(n) = any.downcast_ref::<i128>() {
+            return Self::I128(*n);
+        }
+        if let Some(n) = any.downcast_ref::<usize>() {
+            return Self::U64(*n as u64);
+        }
+        if let Some(n) = any.downcast_ref::<u64>() {
+            return Self::U64(*n);
+        }
+        if let Some(n) = any.downcast_ref::<u128>() {
+            return Self::U128(*n);
+        }
         if let Some(b) = any.downcast_ref::<bool>() {
             return Self::Boolean(*b);
         }
@@ -97,6 +116,10 @@ impl Input {
     pub fn into_value(self, env: JsEnvHandle) -> Result<JsValue, RustHandle> {
         match self {
             Self::Number(n) => Ok(env.new_number(n).into()),
+            Self::I64(n) => Ok(env.new_i64(n).into()),
+            Self::U64(n) => Ok(env.new_u64(n).into()),
+            Self::I128(n) => Ok(env.new_i128(n).into()),
+            Self::U128(n) => Ok(env.new_u128(n).into()),
             Self::Boolean(b) => Ok(env.new_boolean(b).into()),
             Self::Undefined => Ok(env.undefined().into()),
             Self::String(s) => Ok(env.new_string(&s).into()),

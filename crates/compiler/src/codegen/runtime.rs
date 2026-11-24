@@ -8,8 +8,8 @@ use crate::{
         },
     },
     db::Db,
-    ir::runtime::{HandleBorrow, JsMacro, JsType, RsMacro, RsPart, RsType, Runtime},
-    ir::transport::TransportFunction,
+    ir::runtime::{BigIntType, HandleBorrow, JsMacro, JsType, RsMacro, RsPart, RsType, Runtime},
+    ir::transport::{TransportFunction, TransportTypeRs},
 };
 
 mod imports;
@@ -205,6 +205,7 @@ impl RsType {
             Self::U8 => frag!(u8),
             Self::U16 => frag!(u16),
             Self::U32 => frag!(u32),
+            Self::BigInt(_) => frag!({ TransportTypeRs::from(self).rust_name() }),
             Self::F32 => frag!(f32),
             Self::F64 => frag!(f64),
             Self::RustHandle {
@@ -223,7 +224,7 @@ impl RsType {
         fragment(move |p| match self {
             Self::Void | Self::Bool | Self::String => value.apply(p),
             Self::JsValue => frag!(::rustier_runtime::JsValue::from({ value })).apply(p),
-            Self::F64 => value.apply(p),
+            Self::F64 | Self::BigInt(_) => value.apply(p),
             Self::RustHandle { .. } => unreachable!(),
             Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 | Self::F32 => {
                 let target = self.render();
@@ -236,7 +237,7 @@ impl RsType {
         fragment(move |p| match self {
             Self::Void | Self::Bool | Self::String => value.apply(p),
             Self::JsValue => frag!(::rustier_runtime::transport::JsValueHandle::from({ value })).apply(p),
-            Self::F64 => value.apply(p),
+            Self::F64 | Self::BigInt(_) => value.apply(p),
             Self::RustHandle { .. } => {
                 frag!(::rustier_runtime::runtime::rust_handles::RustHandle::new({ value }).into_raw())
                     .apply(p);
@@ -381,6 +382,7 @@ impl<'db> RsMacro<'db> {
                     JsType::String => "string",
                     JsType::Boolean => "boolean",
                     JsType::Number => "number",
+                    JsType::BigInt => "bigint",
                     JsType::Undefined => "undefined",
                     JsType::Any => continue,
                 };
@@ -396,6 +398,28 @@ impl<'db> RsMacro<'db> {
                 .apply(p);
 
                 let (min, max): (i64, i64) = match type_ {
+                    RsType::BigInt(kind) => {
+                        let (signedness, bits) = match kind {
+                            BigIntType::Usize => match backend {
+                                TransportBackend::Wasm(wasm) if !wasm.mem64 => ("asUintN", 32),
+                                _ => ("asUintN", 64),
+                            },
+                            BigIntType::I64 => ("asIntN", 64),
+                            BigIntType::U64 => ("asUintN", 64),
+                            BigIntType::I128 => ("asIntN", 128),
+                            BigIntType::U128 => ("asUintN", 128),
+                        };
+                        let message = doubles(frag!(
+                            {"Rustier input "}{index}{": bigint outside "}{type_.render()}{" range"}
+                        ));
+                        frag!(
+                            if (BigInt.{signedness}({bits}, {argument}) !== {argument}) {{
+                                throw new TypeError({message});@
+                            }}@
+                        )
+                        .apply(p);
+                        continue;
+                    }
                     RsType::I8 => (i8::MIN.into(), i8::MAX.into()),
                     RsType::I16 => (i16::MIN.into(), i16::MAX.into()),
                     RsType::I32 => (i32::MIN.into(), i32::MAX.into()),
@@ -434,7 +458,11 @@ impl<'db> RsMacro<'db> {
             .map(|(type_, argument)| match type_.js() {
                 JsType::Undefined => "undefined".into(),
                 JsType::RustHandle => frag!(__rustier_handle_pointer({ argument })).print(),
-                JsType::Any | JsType::Number | JsType::Boolean | JsType::String => argument.clone(),
+                JsType::Any
+                | JsType::Number
+                | JsType::BigInt
+                | JsType::Boolean
+                | JsType::String => argument.clone(),
             })
             .collect();
         let result_var = "__rustier_result";
@@ -460,7 +488,7 @@ impl<'db> RsMacro<'db> {
         let result = match self.ret_type(db).js() {
             JsType::Undefined => "undefined".to_owned(),
             JsType::RustHandle => frag!(__rustier_new_handle({ result_var })).print(),
-            JsType::Any | JsType::Number | JsType::Boolean | JsType::String => {
+            JsType::Any | JsType::Number | JsType::BigInt | JsType::Boolean | JsType::String => {
                 result_var.to_owned()
             }
         };

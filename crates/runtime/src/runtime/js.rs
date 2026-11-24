@@ -86,6 +86,26 @@ impl JsValue {
         self.as_f64().map(|value| value as f32)
     }
 
+    pub fn as_i128(&self) -> Option<i128> {
+        self.handle.as_i128()
+    }
+
+    pub fn as_u128(&self) -> Option<u128> {
+        self.handle.as_u128()
+    }
+
+    pub fn as_i64(&self) -> Option<i64> {
+        self.handle.as_i64()
+    }
+
+    pub fn as_u64(&self) -> Option<u64> {
+        self.handle.as_u64()
+    }
+
+    pub fn as_usize(&self) -> Option<usize> {
+        self.as_u64()?.try_into().ok()
+    }
+
     pub fn as_i16(&self) -> Option<i16> {
         let value = self.as_f64()?;
         (value.is_finite()

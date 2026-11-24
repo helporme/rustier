@@ -3,7 +3,7 @@
 use ra_ap_hir_def::builtin_type::{BuiltinFloat, BuiltinInt, BuiltinType, BuiltinUint};
 use ra_ap_hir_ty::next_solver::{GenericArgKind, Ty, TyKind};
 
-use super::{HandleBorrow, RsType};
+use super::{BigIntType, HandleBorrow, RsType};
 use crate::{db::Db, ir::rs::RsProgram};
 
 mod compile_errors;
@@ -55,6 +55,11 @@ fn classify_type(db: &dyn Db, program: RsProgram, ty: Ty<'_>) -> RsType {
             Some(BuiltinType::Uint(BuiltinUint::U8)) => RsType::U8,
             Some(BuiltinType::Uint(BuiltinUint::U16)) => RsType::U16,
             Some(BuiltinType::Uint(BuiltinUint::U32)) => RsType::U32,
+            Some(BuiltinType::Uint(BuiltinUint::Usize)) => RsType::BigInt(BigIntType::Usize),
+            Some(BuiltinType::Int(BuiltinInt::I64)) => RsType::BigInt(BigIntType::I64),
+            Some(BuiltinType::Uint(BuiltinUint::U64)) => RsType::BigInt(BigIntType::U64),
+            Some(BuiltinType::Int(BuiltinInt::I128)) => RsType::BigInt(BigIntType::I128),
+            Some(BuiltinType::Uint(BuiltinUint::U128)) => RsType::BigInt(BigIntType::U128),
             Some(BuiltinType::Float(BuiltinFloat::F32)) => RsType::F32,
             Some(BuiltinType::Float(BuiltinFloat::F64)) => RsType::F64,
             _ => classify_owned_handle(db, program, ty),

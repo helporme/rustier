@@ -52,7 +52,7 @@ unsafe extern "C" fn __rustier_drop_handle(
             let __rustier_env_handle = unsafe {
                 __RustierEnvHandle::from_raw(env, data)
             };
-            let mut raw: u64 = 0;
+            let mut raw = 0;
             let mut lossless = false;
             let status = unsafe {
                 __rustier_napi::napi_get_value_bigint_uint64(
@@ -62,11 +62,20 @@ unsafe extern "C" fn __rustier_drop_handle(
                     &mut lossless,
                 )
             };
-            if status != __rustier_napi::Status::napi_ok || !lossless {
-                panic!("Expected a lossless unsigned pointer-sized integer");
-            }
-            let __rustier_handle_0 = usize::try_from(raw)
-                .expect("Integer exceeds usize");
+            let (__rustier_napi::Status::napi_ok, true, Ok(__rustier_handle_0)) = (
+                status,
+                lossless,
+                usize::try_from(raw),
+            ) else {
+                unsafe {
+                    __rustier_napi::napi_throw_type_error(
+                        env,
+                        ::std::ptr::null(),
+                        c"Rustier input 0: bigint outside usize range".as_ptr(),
+                    );
+                }
+                return ::std::ptr::null_mut();
+            };
             let __rustier_output = {
                 unsafe {
                     ::rustier_runtime::runtime::rust_handles::RustHandle::drop_raw(

@@ -41,6 +41,45 @@
     return __rustier_js_insert(value);
   }
 
+  function __rustier_js_new_u64(value) {
+    return __rustier_js_insert(BigInt.asUintN(64, value));
+  }
+
+  function __rustier_js_i64(handle, invalid) {
+    const value = values[handle >>> 0];
+    if (typeof value === "bigint" && BigInt.asIntN(64, value) === value) return value;
+    new DataView(memory.buffer).setUint8(memoryIndex(invalid), 1);
+    return 0n;
+  }
+
+  function __rustier_js_u64(handle, invalid) {
+    const value = values[handle >>> 0];
+    if (typeof value === "bigint" && BigInt.asUintN(64, value) === value) return value;
+    new DataView(memory.buffer).setUint8(memoryIndex(invalid), 1);
+    return 0n;
+  }
+
+  function __rustier_js_new_i128(low, high) {
+    return __rustier_js_insert((high << 64n) | BigInt.asUintN(64, low));
+  }
+
+  function __rustier_js_new_u128(low, high) {
+    return __rustier_js_insert((BigInt.asUintN(64, high) << 64n) | BigInt.asUintN(64, low));
+  }
+
+  function __rustier_js_bigint_two_words(handle, ptr) {
+    const value = values[handle >>> 0];
+    if (typeof value !== "bigint") return -1;
+    const negative = value < 0n;
+    const magnitude = negative ? -value : value;
+    if (magnitude >= (1n << 128n)) return -1;
+    const offset = memoryIndex(ptr);
+    const view = new DataView(memory.buffer);
+    view.setBigUint64(offset, magnitude, true);
+    view.setBigUint64(offset + 8, magnitude >> 64n, true);
+    return negative ? 1 : 0;
+  }
+
   function stringFromMemory(ptr, len) {
     decoder ??= new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
     const bytes = new Uint8Array(memory.buffer, memoryIndex(ptr), memoryIndex(len));
@@ -172,6 +211,13 @@
     __rustier_js_init_memory,
     __rustier_js_insert,
     __rustier_js_new_number,
+    __rustier_js_new_i64: __rustier_js_insert,
+    __rustier_js_new_u64,
+    __rustier_js_i64,
+    __rustier_js_u64,
+    __rustier_js_new_i128,
+    __rustier_js_new_u128,
+    __rustier_js_bigint_two_words,
     __rustier_js_new_string,
     __rustier_js_new_boolean,
     __rustier_js_new_symbol,

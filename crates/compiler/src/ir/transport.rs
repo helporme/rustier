@@ -1,6 +1,6 @@
 //! IR describing rust/js boundary api, implemented by specific backend (wasm/napi).
 
-use super::runtime::{RsSignature, RsType};
+use super::runtime::{BigIntType, RsSignature, RsType};
 use crate::db::Db;
 
 /// A transport function defined to be called from js.
@@ -50,6 +50,10 @@ pub enum TransportTypeRs {
     Bool,
     F64,
     Usize,
+    I64,
+    U64,
+    I128,
+    U128,
     Void,
     JsValueHandle,
 }
@@ -61,7 +65,11 @@ impl From<RsType> for TransportTypeRs {
             RsType::Bool => Self::Bool,
             RsType::Void => Self::Void,
             RsType::JsValue => Self::JsValueHandle,
-            RsType::RustHandle { .. } => Self::Usize,
+            RsType::RustHandle { .. } | RsType::BigInt(BigIntType::Usize) => Self::Usize,
+            RsType::BigInt(BigIntType::I64) => Self::I64,
+            RsType::BigInt(BigIntType::U64) => Self::U64,
+            RsType::BigInt(BigIntType::I128) => Self::I128,
+            RsType::BigInt(BigIntType::U128) => Self::U128,
             RsType::I8
             | RsType::I16
             | RsType::I32
@@ -92,7 +100,7 @@ pub enum TransportTypeJs {
     String,
     Boolean,
     Number,
-    BigInt,
+    BigInt(BigIntType),
     Undefined,
     Any,
 }
@@ -104,7 +112,11 @@ impl TransportTypeRs {
             Self::String => TransportTypeJs::String,
             Self::Bool => TransportTypeJs::Boolean,
             Self::F64 => TransportTypeJs::Number,
-            Self::Usize => TransportTypeJs::BigInt,
+            Self::Usize => TransportTypeJs::BigInt(BigIntType::Usize),
+            Self::I64 => TransportTypeJs::BigInt(BigIntType::I64),
+            Self::U64 => TransportTypeJs::BigInt(BigIntType::U64),
+            Self::I128 => TransportTypeJs::BigInt(BigIntType::I128),
+            Self::U128 => TransportTypeJs::BigInt(BigIntType::U128),
             Self::Void => TransportTypeJs::Undefined,
             Self::JsValueHandle => TransportTypeJs::Any,
         }
