@@ -86,6 +86,9 @@ importers:
       typescript:
         specifier: ^6.0.2
         version: 6.0.3
+      vite:
+        specifier: ^8.3.0
+        version: 8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^4.1.7
         version: 4.1.12(@types/node@25.9.9)(vite@8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1))
@@ -230,8 +233,8 @@ importers:
         specifier: ^0.8.0
         version: 0.8.1(prettier-plugin-svelte@4.1.1(prettier@3.10.1)(svelte@5.57.2(@typescript-eslint/types@8.72.2)))(prettier@3.10.1)
       rustier:
-        specifier: 0.0.0-bootstrap
-        version: 0.0.0-bootstrap(rolldown@1.2.13)(tsdown@0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39))(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
+        specifier: workspace:*
+        version: link:../rustier
       svelte:
         specifier: ^5.57.1
         version: 5.57.2(@typescript-eslint/types@8.72.2)
@@ -5091,12 +5094,6 @@ snapshots:
     optionalDependencies:
       rolldown: 1.2.13
       tsdown: 0.21.10(publint@0.3.25)(typescript@6.0.3)
-      vite: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)
-
-  rustier@0.0.0-bootstrap(rolldown@1.2.13)(tsdown@0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39))(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)):
-    optionalDependencies:
-      rolldown: 1.2.13
-      tsdown: 0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39)
       vite: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1)
 
   rustier@0.0.0-bootstrap(rolldown@1.2.13)(tsdown@0.22.14(publint@0.3.25)(typescript@6.0.3)(unrun@0.2.39))(vite@8.3.4(@types/node@25.9.9)(jiti@2.7.0)(yaml@2.9.1)):

@@ -1,7 +1,41 @@
 import { resolve } from 'node:path'
-import { nativePlatforms, recommendedTargets, type BuildDriver, type NativeTargetName, type Target, type TargetOptions, type ResolvedTarget } from './targets'
+import { nativePlatforms, resolveTarget, type MergedTargetOptions, type ResolvedTarget } from '../targets'
+import { resolveCrates, type WorkspaceOptions } from '../workspace'
 
-export type { BuildDriver, Target, TargetName, NativeTargetName, WasmTargetName, TargetOptions, Loading } from './targets'
+/** Local crate paths are relative to `rootDir`; registry dependencies take a Cargo version requirement. */
+export type CrateOptions = ({ path: string } | { version: string }) & {
+  /** Crate-local feature names. Default features remain enabled. */
+  features?: string[]
+}
+
+export type NativeTargetName = keyof typeof nativePlatforms
+/** Only wasm32/wasm64-unknown-unknown are currently implemented. */
+export type WasmTargetName = 'wasm32-unknown-unknown' | 'wasm64-unknown-unknown' | (`wasm${number}-${string}` & {})
+export type TargetName = 'host' | NativeTargetName | WasmTargetName | (string & {})
+
+/** Fetch Wasm by URL, read it from disk in Node, or import a bundler-provided WebAssembly.Module. */
+export type Loading = 'web' | 'node-js' | 'module'
+/** `auto` uses Zig for foreign Linux targets and xwin for non-Windows hosts targeting MSVC. */
+export type BuildDriver = 'cargo' | 'auto' | 'zigbuild' | 'xwin'
+
+export type TargetOptions = {
+  /** Override the plugin's Cargo build driver for this target. */
+  buildDriver?: BuildDriver
+  /** Additional Cargo features, e.g. `['my_crate/simd']`. */
+  features?: string[]
+  /** Override variables in the Cargo process environment. */
+  env?: Record<string, string>
+} & ({
+  target: TargetName
+  loading?: never
+} | {
+  target: WasmTargetName
+  /** Wasm loading strategy for single-target inline output. Defaults to `'web'`. */
+  loading?: Loading
+})
+
+/** A Rust target triple or `'host'`, optionally accompanied by target-specific settings. */
+export type Target = TargetName | TargetOptions
 
 /**
  * Where runtime artifacts are distributed.
@@ -62,26 +96,6 @@ export interface DevOptions {
    * @example true
    */
   release?: boolean
-}
-
-/**
- * A Cargo dependency from a local directory or crates.io.
- * @example { version: '1', features: ['derive'] }
- * @example { path: './rust', features: ['logging'] }
- */
-export type CrateOptions = ({
-  /** Local crate directory, relative to `rootDir` or absolute. */
-  path: string
-} | {
-  /** Cargo version requirement for a crates.io dependency. */
-  version: string
-}) & {
-  /**
-   * Features enabled for this dependency on every target. Default features remain enabled.
-   * Names are local to the crate, without a `crate/` prefix.
-   * @example ['derive']
-   */
-  features?: string[]
 }
 
 /**
@@ -165,9 +179,7 @@ export interface RustierOptions {
   release?: boolean
 }
 
-export interface EffectiveOptions {
-  root: string
-  crates: NonNullable<RustierOptions['crates']>
+export interface EffectiveOptions extends WorkspaceOptions {
   targets: ResolvedTarget[]
   distribution: Distribution
   concurrency: number
@@ -178,19 +190,18 @@ export function normalizeOptions(options: RustierOptions, watch: boolean, host: 
   if (options.release !== undefined && typeof options.release !== 'boolean') {
     throw new Error('release must be a boolean')
   }
-  const requested = options.targets === 'recommended' ? recommendedTargets : options.targets ?? ['host']
+  const requested = options.targets === 'recommended' ? Object.keys(nativePlatforms) : options.targets ?? ['host']
   if (!requested.length) throw new Error('Rustier requires at least one target')
   const root = resolve(options.rootDir ?? process.cwd())
   const development = watch && options.dev !== false
   const dev = development ? options.dev || {} : undefined
-  const configured: (Omit<TargetOptions, 'target'> & { target: string })[] =
-    requested.map(target => typeof target === 'string' ? { target } : target)
+  const configured: TargetOptions[] = requested.map(target => typeof target === 'string' ? { target } : target)
   const names = configured.map(target => target.target)
   if (new Set(names).size !== names.length) throw new Error('Duplicate Rustier targets')
 
-  let selected = configured
+  let selected: MergedTargetOptions[] = configured
   if (dev) {
-    const override: Omit<TargetOptions, 'target'> & { target: string } =
+    const override: TargetOptions =
       typeof dev.target === 'string' ? { target: dev.target } : dev.target ?? { target: 'host' }
     const name = override.target === 'host' ? host : override.target
     const base = configured.find(target => (target.target === 'host' ? host : target.target) === name)
@@ -202,23 +213,8 @@ export function normalizeOptions(options: RustierOptions, watch: boolean, host: 
     }]
   }
 
-  const targets = selected.map((entry): ResolvedTarget => {
-    const target = entry.target === 'host' ? host : entry.target
-    const platform = Object.hasOwn(nativePlatforms, target) ? nativePlatforms[target as NativeTargetName] : undefined
-    const kind = target === 'wasm32-unknown-unknown' ? 'wasm32'
-      : target === 'wasm64-unknown-unknown' ? 'wasm64' : 'node'
-    if (kind === 'node' && !platform) throw new Error(`Unsupported Rustier target: ${target}`)
-    if (kind === 'node' && entry.loading) throw new Error(`loading applies only to Wasm: ${target}`)
-    const loading = entry.loading ?? 'web'
-    if (!['web', 'node-js', 'module'].includes(loading)) throw new Error(`Invalid Wasm loading mode: ${loading}`)
-    return {
-      target, kind, platform, loading,
-      buildDriver: entry.buildDriver ?? options.buildDriver ?? 'auto',
-      features: [...new Set(entry.features ?? [])].sort(),
-      env: { ...entry.env },
-      release: dev ? dev.release ?? false : options.release ?? true,
-    }
-  })
+  const release = dev ? dev.release ?? false : options.release ?? true
+  const targets = selected.map(entry => resolveTarget(entry, host, release, options.buildDriver))
   if (new Set(targets.map(target => target.target)).size !== targets.length) {
     throw new Error('Targets resolve to the same Rust target')
   }
@@ -232,8 +228,6 @@ export function normalizeOptions(options: RustierOptions, watch: boolean, host: 
   }
   return {
     root, development, distribution, concurrency, targets,
-    crates: Object.fromEntries(Object.entries(options.crates ?? {}).map(([name, crate]) => [
-      name, 'path' in crate ? { ...crate, path: resolve(root, crate.path) } : crate,
-    ])),
+    crates: resolveCrates(root, options.crates),
   }
 }

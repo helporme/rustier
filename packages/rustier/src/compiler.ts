@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { rs } from 'rustier'
-import type { EffectiveOptions } from './options'
-import type { Loading, ResolvedTarget } from './targets'
+import type { WorkspaceOptions } from './workspace'
+import type { ResolvedTarget } from './targets'
 
 export type TransformResult =
   | { diagnostics: string[] }
@@ -10,6 +10,7 @@ export type TransformResult =
 export interface BuildOutcome {
   target: string
   binary_path?: string
+  dep_info?: string
   warnings: string[]
   error?: string
 }
@@ -35,7 +36,7 @@ export function checkDrivers(targets: ResolvedTarget[]): void {
   `
 }
 
-function createBackend(kind: ResolvedTarget['kind'], loading: Loading): unknown {
+function createBackend(kind: ResolvedTarget['kind'], loading: ResolvedTarget['loading']): unknown {
   const wasm = kind !== 'node'
   const mem64 = kind === 'wasm64'
   return rs`
@@ -66,11 +67,12 @@ export class Compilation {
   private backend: unknown
   private optionsJson: string
 
-  constructor(readonly targets: ResolvedTarget[], options: EffectiveOptions) {
+  constructor(readonly targets: ResolvedTarget[], options: WorkspaceOptions,
+    workspaceDir = resolve(options.root, '.rustier/workspace', targets[0].kind)) {
     const first = targets[0]
     this.backend = createBackend(first.kind, first.loading)
     this.optionsJson = JSON.stringify({
-      tmp_path: resolve(options.root, '.rustier/workspace', first.kind),
+      tmp_path: workspaceDir,
       dependency_crates: options.crates,
       features: [...new Set(targets.flatMap(target => target.features))],
       target: first.kind === 'node' ? null : first.target,
@@ -89,6 +91,30 @@ export class Compilation {
       use rustier_workspace::Workspace;
       Workspace::with_db(${this.workspace}, |db, _| rustier_compiler::ir::js::JsProgram::new(db, Vec::new()))
     `
+  }
+
+  setProgram(sources: [string, string][]) {
+    const json = JSON.stringify(sources)
+    this.program = rs`
+      use rustier_compiler::ir::js::{JsFile, JsProgram};
+      use rustier_workspace::Workspace;
+      let json: String = ${json};
+      let sources: Vec<(String, String)> = serde_json::from_str(&json)?;
+      Ok(Workspace::with_db(${this.workspace}, |db, _| {
+          JsProgram::new(db, sources.into_iter().map(|(id, code)| JsFile::new(db, id, code)).collect())
+      }))
+    `
+    const errors: string[] = JSON.parse(rs`
+      use rustier_workspace::Workspace;
+      use rustier_compiler::{diag::Theme, ir::{js::JsProgram, runtime::Runtime}};
+      let program: &JsProgram = ${this.program};
+      Workspace::with_db(${this.workspace}, |db, rs| {
+          let errors: Vec<_> = Runtime::new(db, *program, rs).check(db).into_iter()
+              .map(|diagnostic| diagnostic.render(Theme::UnicodeNoColor).unwrap()).collect();
+          serde_json::to_string(&errors).unwrap()
+      })
+    `)
+    if (errors.length) throw new Error(errors.join('\n'))
   }
 
   transform(path: string, content: string, runtime: string): TransformResult {
@@ -172,7 +198,7 @@ export class Compilation {
     `
   }
 
-  renderRuntime(binary: string, loading: Loading): string {
+  renderRuntime(binary: string, loading: ResolvedTarget['loading']): string {
     const backend = createBackend(this.targets[0].kind, loading)
     return rs`
       use rustier_workspace::Workspace;
@@ -205,6 +231,7 @@ export function buildBatch(batch: unknown, iteration: number, concurrency: numbe
     }).into_iter().map(|outcome| match outcome.result {
         Ok(artifact) => serde_json::json!({
             "target": artifact.target, "binary_path": artifact.binary_path,
+            "dep_info": artifact.dep_info,
             "warnings": artifact.warnings,
         }),
         Err(error) => serde_json::json!({

@@ -84,6 +84,7 @@ pub struct BuildOpts {
 pub struct Artifact {
     pub target: String,
     pub binary_path: PathBuf,
+    pub dep_info: PathBuf,
     pub warnings: Vec<String>,
 }
 
@@ -230,6 +231,7 @@ pub fn build_glue_crate(
     let output = opts
         .build_driver
         .command(opts, &cargo)?
+        .current_dir(&glue.directory)
         .stderr(io::stderr())
         .output()?;
 
@@ -273,11 +275,12 @@ pub fn build_glue_crate(
     let target_directory = artifacts.join(&opts.target);
     fs::create_dir(&target_directory)?;
     let binary_path = target_directory.join(target.filename);
-    fs::copy(binary, &binary_path)?;
+    fs::copy(&binary, &binary_path)?;
 
     Ok(Artifact {
         target: opts.target.clone(),
         binary_path,
+        dep_info: binary.with_extension("d").into_std_path_buf(),
         warnings,
     })
 }

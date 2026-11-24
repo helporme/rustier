@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { posix } from 'node:path'
-import type { EffectiveOptions } from '../options'
-import type { Loading, ResolvedTarget } from '../targets'
+import type { EffectiveOptions, Loading } from '../option'
+import type { ResolvedTarget } from '../../targets'
 import { renderRouter, type RouterPlan } from './router'
 
 export const binaryNames = { node: 'bridge.node', wasm32: 'bridge.wasm', wasm64: 'bridge.wasm' } as const

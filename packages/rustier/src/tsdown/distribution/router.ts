@@ -1,4 +1,4 @@
-import type { NativePlatform } from '../targets'
+import type { NativePlatform } from '../../targets'
 
 export interface NativeRoute extends NativePlatform {
   module: string

@@ -118,8 +118,13 @@ impl<'db> Runtime<'db> {
     /// Lowers this occurrence in the runtime's Rust dependency context.
     #[salsa::tracked]
     pub fn lower_rs(self, db: &'db dyn Db, src: RsMacroSrc<'db>) -> RsMacro<'db> {
-        let body: Vec<_> = src
-            .body(db)
+        RsMacro::new(db, self.rs_program(db), src.rs_body(db))
+    }
+}
+
+impl RsMacroSrc<'_> {
+    pub(crate) fn rs_body(self, db: &dyn Db) -> Vec<RsPart> {
+        self.body(db)
             .iter()
             .map(|part| match part {
                 JsPart::Text(range) => {
@@ -130,19 +135,14 @@ impl<'db> Runtime<'db> {
                 }
                 JsPart::Interpolation { .. } => RsPart::Input,
             })
-            .collect();
-
-        RsMacro::new(db, self.rs_program(db), body)
+            .collect()
     }
 }
 
-#[salsa::tracked]
-impl<'db> RsMacro<'db> {
-    /// A stable macro export name.
-    #[salsa::tracked(returns(ref))]
-    pub fn symbol(self, db: &'db dyn Db) -> String {
+impl RsPart {
+    pub(crate) fn symbol(body: &[Self]) -> String {
         let mut hash = blake3::Hasher::new();
-        for part in self.body(db) {
+        for part in body {
             match part {
                 RsPart::Text(text) => {
                     hash.update(&[0]);
@@ -155,6 +155,15 @@ impl<'db> RsMacro<'db> {
             }
         }
         format!("__rustier_{}", hash.finalize().to_hex())
+    }
+}
+
+#[salsa::tracked]
+impl<'db> RsMacro<'db> {
+    /// A stable macro export name.
+    #[salsa::tracked(returns(ref))]
+    pub fn symbol(self, db: &'db dyn Db) -> String {
+        RsPart::symbol(self.body(db))
     }
 
     /// The resolved runtime signature, before choosing a wire representation.

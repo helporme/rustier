@@ -1,4 +1,5 @@
 import { untrack } from 'svelte';
+import { dev } from '$app/env';
 import AnalysisWorker from './analysis.worker?worker';
 import type { Analysis, AnalysisRequest, AnalysisResponse } from './protocol';
 
@@ -40,10 +41,13 @@ export class Analyzer {
 		try {
 			const worker = new AnalysisWorker({ name: 'rustier-analysis' });
 			this.#worker = worker;
-			this.#timer = setTimeout(
-				() => this.#fail('Browser analysis timed out. Restart to try again.'),
-				60_000
-			);
+			// In development the first worker request can include a cold Cargo build.
+			if (!dev) {
+				this.#timer = setTimeout(
+					() => this.#fail('Browser analysis timed out. Restart to try again.'),
+					60_000
+				);
+			}
 			worker.onmessage = ({ data }: MessageEvent<AnalysisResponse>) => {
 				if (worker !== this.#worker) return;
 				clearTimeout(this.#timer);

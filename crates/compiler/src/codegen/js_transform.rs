@@ -4,7 +4,7 @@ use crate::{
     codegen::fragment::{FragmentOnce, FragmentPrint, doubles, frag, fragment},
     db::Db,
     ir::js::{JsFileRange, JsModule, JsPart, RsMacroSrc},
-    ir::runtime::Runtime,
+    ir::runtime::{RsPart, Runtime},
 };
 
 #[derive(Clone, PartialEq, Eq, salsa::Update)]
@@ -72,8 +72,23 @@ impl<'db> Runtime<'db> {
         module: JsModule<'db>,
         ffi_js_mod_path: String,
     ) -> Vec<JsEdit> {
-        let file = module.file(db);
-        let macros = module.macros(db);
+        module.transform_edits(db, ffi_js_mod_path, Some(self))
+    }
+}
+
+impl<'db> JsModule<'db> {
+    pub fn syntax_transform_edits(self, db: &'db dyn Db, runtime_path: String) -> Vec<JsEdit> {
+        self.transform_edits(db, runtime_path, None)
+    }
+
+    fn transform_edits(
+        self,
+        db: &'db dyn Db,
+        ffi_js_mod_path: String,
+        runtime: Option<Runtime<'db>>,
+    ) -> Vec<JsEdit> {
+        let file = self.file(db);
+        let macros = self.macros(db);
         let source = file.contents(db);
 
         if macros.is_empty() {
@@ -103,7 +118,7 @@ impl<'db> Runtime<'db> {
 
         render_range_edits(
             db,
-            self,
+            runtime,
             macros,
             JsFileRange::new(db, file, start as u32, source.len() as u32),
             &binding,
@@ -116,7 +131,7 @@ impl<'db> Runtime<'db> {
 
 fn render_range_edits<'db>(
     db: &'db dyn Db,
-    runtime: Runtime<'db>,
+    runtime: Option<Runtime<'db>>,
     macros: &[RsMacroSrc<'db>],
     range: JsFileRange<'db>,
     binding: &str,
@@ -130,8 +145,10 @@ fn render_range_edits<'db>(
             continue;
         }
 
-        let diagnostics = runtime.source_diagnostics(db, *src);
-        if !diagnostics.is_empty() {
+        if let Some(runtime) = runtime
+            && let diagnostics = runtime.source_diagnostics(db, *src)
+            && !diagnostics.is_empty()
+        {
             let message = diagnostics
                 .iter()
                 .map(|diagnostic| {
@@ -151,7 +168,7 @@ fn render_range_edits<'db>(
             continue;
         }
 
-        let name = runtime.lower_rs(db, *src).symbol(db);
+        let name = RsPart::symbol(&src.rs_body(db));
         let mut prefix = frag!({binding}{"."}{name}{"("}).print();
         let mut start = span.start(db);
         let mut has_arguments = false;

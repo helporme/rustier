@@ -14,14 +14,15 @@
   ],
   "exports": {
     ".": "./dist/index.mjs",
-    "./tsdown": "./dist/tsdown.mjs"
+    "./tsdown": "./dist/tsdown.mjs",
+    "./vite": "./dist/vite.mjs"
   },
   "scripts": {
-    "build": "tsdown",
-    "build:dev": "tsdown --env.runtimeSource local",
-    "test": "pnpm run build:dev && pnpm --dir ../../crates/server run build:dev && vitest run && pnpm --filter library-example run build",
+    "build/dev": "tsdown --env.runtimeSource local",
+    "build/release": "tsdown",
+    "test": "pnpm run build/dev && pnpm --dir ../../crates/server run build:dev && vitest run && pnpm --filter library-example run build",
     "check": "tsc --noEmit",
-    "prepublishOnly": "npm run build && node ./npm/publish.mjs"
+    "prepublishOnly": "npm run build/release && node ./npm/publish.mjs"
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1",
@@ -34,9 +35,14 @@
     "rustier-legacy-tests": "npm:rustier@0.0.0-bootstrap",
     "tsdown": "^0.22.0",
     "typescript": "^6.0.2",
+    "vite": "^8.3.0",
     "vitest": "^4.1.7"
   },
   "peerDependencies": {
-    "rolldown": "^1.0.0"
+    "rolldown": "^1.0.0",
+    "vite": "^8.3.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": { "optional": true }
   }
 }

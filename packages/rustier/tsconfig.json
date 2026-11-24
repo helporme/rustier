@@ -3,7 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "paths": { "rustier": ["./src/rs.ts"] },
+    "paths": { "rustier": ["./src/index.ts"] },
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,

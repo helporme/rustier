@@ -2,7 +2,8 @@
   "name": "rustier-workspace",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter rustier run build",
+    "build/dev": "pnpm --filter rustier run build/dev",
+    "build/release": "pnpm --filter rustier run build/release",
     "test": "pnpm --filter rustier run test"
   }
 }

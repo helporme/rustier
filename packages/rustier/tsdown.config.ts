@@ -6,10 +6,10 @@ import rustier from 'rustier-bootstrap/tsdown'
 export default defineConfig(({ env }) => {
   const localRuntime = env?.runtimeSource === 'local'
   return {
-    entry: { index: 'src/rs.ts', tsdown: 'src/index.ts' },
+    entry: { tsdown: 'src/tsdown/index.ts', vite: 'src/vite/index.ts', index: 'src/index.ts' },
     dts: true,
     deps: {
-      neverBundle: ['rustier', 'rolldown'],
+      neverBundle: ['rustier', 'rolldown', 'vite'],
     },
     plugins: [{
       name: 'raw-js',

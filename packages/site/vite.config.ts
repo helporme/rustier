@@ -22,7 +22,7 @@ export default defineConfig({
 			adapter: adapter(),
 			experimental: { remoteFunctions: true }
 		}),
-		{ ...rustier({ browser }), apply: 'serve' }
+		rustier({ browser })
 	],
 	ssr: {
 		noExternal: [/.*/]
