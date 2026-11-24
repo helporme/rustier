@@ -1,10 +1,11 @@
-pub mod runtime;
+pub mod errors;
+pub mod js;
+pub mod js_call;
+pub mod rust_handles;
 pub mod transport;
 
-pub use runtime::{
-    js::{JsEnv, JsValue},
-    js_call::{JsCallError, JsMacro},
-};
+pub use js::{JsEnv, JsValue};
+pub use js_call::{JsCallError, JsMacro};
 
 #[doc(hidden)]
 pub use rustier_js_proc::__expand_js;

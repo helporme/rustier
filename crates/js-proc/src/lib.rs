@@ -51,10 +51,10 @@ fn expand(
         .map(|i| format_ident!("arg_{i}"))
         .collect();
     quote!(({
-        struct Call { #(#args: #runtime::runtime::js_call::Input),* }
+        struct Call { #(#args: #runtime::js_call::Input),* }
 
         unsafe extern "Rust" {
-            fn #boundary(env: #runtime::JsEnv, #(#args: #runtime::runtime::js_call::Input),*)
+            fn #boundary(env: #runtime::JsEnv, #(#args: #runtime::js_call::Input),*)
                 -> ::std::result::Result<#runtime::JsValue, #runtime::JsCallError>;
         }
 
@@ -75,7 +75,7 @@ fn expand(
                 fn assert_static<T: 'static>(_: &T) {}
                 #(assert_static(&#args);)*
             }
-            Call { #(#args: #runtime::runtime::js_call::Input::new(#args)),* }
+            Call { #(#args: #runtime::js_call::Input::new(#args)),* }
         }
     })(#({ #inputs }),*))
 }

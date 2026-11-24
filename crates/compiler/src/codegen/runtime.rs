@@ -112,7 +112,7 @@ impl<'db> Runtime<'db> {
             }
         });
         frag!(
-            fn __rustier_input(env: ::rustier_runtime::JsEnv, input: ::rustier_runtime::runtime::js_call::Input)
+            fn __rustier_input(env: ::rustier_runtime::JsEnv, input: ::rustier_runtime::js_call::Input)
             -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {{
                 let env_handle = __RustierEnvHandle::from(env);@
                 match input.into_value(env_handle) {{
@@ -157,7 +157,7 @@ impl<'db> Runtime<'db> {
 
                 frag!(unsafe {
                     {
-                        ::rustier_runtime::runtime::rust_handles::RustHandle::drop_raw({ pointer });
+                        ::rustier_runtime::rust_handles::RustHandle::drop_raw({ pointer });
                     }
                 })
                 .print()
@@ -174,7 +174,7 @@ impl<'db> JsMacro<'db> {
 
     fn render_rs_boundary(self, db: &'db dyn Db) -> impl FragmentOnce {
         let params =
-            (0..self.input_count(db)).map(|i| frag!(, arg_{i}: ::rustier_runtime::runtime::js_call::Input));
+            (0..self.input_count(db)).map(|i| frag!(, arg_{i}: ::rustier_runtime::js_call::Input));
         let params = fragment(move |p| {
             for param in params {
                 param.apply(p);
@@ -239,7 +239,7 @@ impl RsType {
             Self::JsValue => frag!(::rustier_runtime::transport::JsValueHandle::from({ value })).apply(p),
             Self::F64 | Self::BigInt(_) => value.apply(p),
             Self::RustHandle { .. } => {
-                frag!(::rustier_runtime::runtime::rust_handles::RustHandle::new({ value }).into_raw())
+                frag!(::rustier_runtime::rust_handles::RustHandle::new({ value }).into_raw())
                     .apply(p);
             }
             Self::I8 | Self::I16 | Self::I32 | Self::U8 | Self::U16 | Self::U32 | Self::F32 => {
@@ -289,7 +289,7 @@ impl<'db> RsMacro<'db> {
 
                             frag!(
                                 let __rustier_owned_{index} = unsafe {{
-                                    ::rustier_runtime::runtime::rust_handles::RustHandle::clone_from_raw({argument})
+                                    ::rustier_runtime::rust_handles::RustHandle::clone_from_raw({argument})
                                 }};@
                                 let mut __rustier_guard_{index} = __rustier_owned_{index}.{method}::<_>()
                                     .map_err(|error| ::rustier_runtime::transport::TransportError::Dynamic(error.to_string()))?;@
@@ -372,7 +372,7 @@ impl<'db> RsMacro<'db> {
                             doubles(frag!({"Rustier input "}{index}{": expected Rust handle"}));
 
                         frag!(
-                            if (!__rustier_is_handle({argument})) {{
+                            if (!__rustier_handles.has({argument})) {{
                                 throw new TypeError({message});@
                             }}@
                         )
@@ -457,7 +457,7 @@ impl<'db> RsMacro<'db> {
             .zip(&arguments)
             .map(|(type_, argument)| match type_.js() {
                 JsType::Undefined => "undefined".into(),
-                JsType::RustHandle => frag!(__rustier_handle_pointer({ argument })).print(),
+                JsType::RustHandle => frag!({argument}[" __UNSAFE_ptr"]).print(),
                 JsType::Any
                 | JsType::Number
                 | JsType::BigInt

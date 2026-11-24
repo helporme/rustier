@@ -4,7 +4,7 @@ use std::{any::Any, error::Error, fmt};
 
 use crate::{
     JsEnv, JsValue,
-    runtime::rust_handles::RustHandle,
+    rust_handles::RustHandle,
     transport::{JsEnvHandle, JsValueHandle},
 };
 

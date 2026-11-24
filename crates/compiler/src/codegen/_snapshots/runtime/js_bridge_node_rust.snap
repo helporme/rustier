@@ -78,7 +78,7 @@ unsafe extern "C" fn __rustier_drop_handle(
             };
             let __rustier_output = {
                 unsafe {
-                    ::rustier_runtime::runtime::rust_handles::RustHandle::drop_raw(
+                    ::rustier_runtime::rust_handles::RustHandle::drop_raw(
                         __rustier_handle_0,
                     );
                 }
@@ -261,7 +261,7 @@ unsafe extern "C" fn __rustier_bind(
 }
 fn __rustier_input(
     env: ::rustier_runtime::JsEnv,
-    input: ::rustier_runtime::runtime::js_call::Input,
+    input: ::rustier_runtime::js_call::Input,
 ) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
     let env_handle = __RustierEnvHandle::from(env);
     match input.into_value(env_handle) {
@@ -277,8 +277,8 @@ fn __rustier_input(
 #[unsafe(no_mangle)]
 pub extern "Rust" fn __rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
     env: ::rustier_runtime::JsEnv,
-    arg_0: ::rustier_runtime::runtime::js_call::Input,
-    arg_1: ::rustier_runtime::runtime::js_call::Input,
+    arg_0: ::rustier_runtime::js_call::Input,
+    arg_1: ::rustier_runtime::js_call::Input,
 ) -> Result<::rustier_runtime::JsValue, ::rustier_runtime::JsCallError> {
     import___rustier_js_a7142a90af539a59436e0ad88a492350dafd0aad2a532f6b0fc0c08e7997d331(
         env,

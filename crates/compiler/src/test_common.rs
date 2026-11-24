@@ -8,20 +8,18 @@ use triomphe::Arc;
 use crate::{db::RootDatabase, ir::rs::RsProgram};
 
 const RUNTIME: &str = r#"
-    pub use runtime::js::{JsEnv, JsValue};
+    pub use js::{JsEnv, JsValue};
     pub struct JsCallError;
     pub trait JsMacro {}
     pub enum JsValueType {}
     #[macro_export]
     macro_rules! __js_in_rs { () => { () }; }
-    pub mod runtime {
-        pub mod js {
-            pub struct JsValue;
-            pub struct JsEnv;
-            impl JsValue {
-                pub fn clone(&self) -> Self { loop {} }
-                pub fn discard(self) {}
-            }
+    pub mod js {
+        pub struct JsValue;
+        pub struct JsEnv;
+        impl JsValue {
+            pub fn clone(&self) -> Self { loop {} }
+            pub fn discard(self) {}
         }
     }
 "#;

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { rs } from 'rustier'
 
-test('handles are opaque and cannot be forged from JS', () => {
+test('handles expose a read-only pointer and cannot be forged from JS', () => {
   const message = rs`handy_crate::Message("Hello")`
   const read = (value: unknown) => rs`
     let message: &handy_crate::Message = ${value};
@@ -9,10 +9,13 @@ test('handles are opaque and cannot be forged from JS', () => {
   `
 
   expect(message.constructor.name).toBe('Rs')
-  expect(Reflect.ownKeys(message)).toEqual([])
+  const pointer = message[' __UNSAFE_ptr']
+  expect(typeof pointer).toBe('bigint')
+  expect(Reflect.set(message, ' __UNSAFE_ptr', 0n)).toBe(false)
+  expect(Reflect.deleteProperty(message, ' __UNSAFE_ptr')).toBe(false)
   expect(() => new message.constructor(0n)).toThrow(TypeError)
 
-  for (const invalid of [0, 0n, null, undefined, {}, Object.create(Object.getPrototypeOf(message)), new Proxy(message, {})]) {
+  for (const invalid of [0, 0n, null, undefined, {}, { ' __UNSAFE_ptr': pointer }, Object.create(Object.getPrototypeOf(message)), new Proxy(message, {})]) {
     expect(() => read(invalid)).toThrow(TypeError)
   }
   expect(read(message)).toBe('Hello')
