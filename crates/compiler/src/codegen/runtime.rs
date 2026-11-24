@@ -338,7 +338,7 @@ impl<'db> RsMacro<'db> {
                 let body = frag!(
                     let __rustier_env = ::rustier_runtime::JsEnv::from({env});@
                     #[allow(unused_imports)]@
-                    use ::rustier::{{JsCallError, JsEnv, JsMacro, JsValue, JsValueType, RsValueHandle}};@
+                    use ::rustier::{{FromJs, JsCallError, JsEnv, JsMacro, JsValue, JsValueType, RsValueHandle, ToJs}};@
                     #[allow(unused_imports)]@
                     use ::rustier_js_proc::__js_in_rs as js;@
                     {conversions}@

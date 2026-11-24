@@ -11,6 +11,8 @@ const RUNTIME: &str = r#"
     pub use js::{JsEnv, JsValue};
     pub struct JsCallError;
     pub trait JsMacro {}
+    pub trait FromJs {}
+    pub trait ToJs {}
     pub enum JsValueType {}
     pub struct RsValueHandle<T>(T);
     #[macro_export]

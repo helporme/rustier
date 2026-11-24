@@ -66,6 +66,8 @@ impl RustHandle {
         Rc::into_raw(self.0) as usize
     }
 
+    /// # Safety
+    /// `raw` must identify a live handle exported on the current JS thread.
     pub unsafe fn clone_from_raw(raw: usize) -> Self {
         let ptr = raw as *const Allocation;
 
@@ -75,6 +77,9 @@ impl RustHandle {
         }
     }
 
+    /// # Safety
+    /// Release each ownership transfer from `into_raw` exactly once, on its
+    /// owning thread.
     pub unsafe fn drop_raw(raw: usize) {
         unsafe {
             Rc::decrement_strong_count(raw as *const Allocation);

@@ -1,5 +1,7 @@
 //! Humble structs and enums used in e2e tests.
 
+pub mod conversions;
+
 use rustier::{JsCallError, JsEnv, JsMacro, JsValue, js};
 
 pub struct Message(pub &'static str);

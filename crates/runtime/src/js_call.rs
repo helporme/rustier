@@ -14,6 +14,10 @@ use crate::{
 pub struct JsCallError(String);
 
 impl JsCallError {
+    pub fn new(message: impl Into<String>) -> Self {
+        Self(message.into())
+    }
+
     /// Reports a call made before the native addon has bound its JavaScript imports.
     #[doc(hidden)]
     pub fn unbound() -> Self {
@@ -47,6 +51,16 @@ pub trait OwnedInput<Marker> {}
 impl<T> OwnedInput<()> for T {}
 impl<T: ?Sized> OwnedInput<&()> for &T {}
 impl<T: ?Sized> OwnedInput<&()> for &mut T {}
+
+// Distinguish an explicitly handled field (even a String or JsValue) from an
+// ordinary interpolation, without changing how its contained type is stored.
+struct HandleInput(RustHandle);
+
+#[doc(hidden)]
+pub fn write_handle<T: 'static>(value: T, env: JsEnv) -> Result<JsValue, JsCallError> {
+    let input = HandleInput(RustHandle::new(value));
+    crate::js!(return @{input}).at(env)
+}
 
 /// An evaluated interpolation held by a deferred `js!` call until execution.
 pub enum Input {
@@ -106,6 +120,9 @@ impl Input {
         }
         if let Some(v) = any.downcast_mut::<Option<JsValue>>() {
             return Self::Value(v.take().unwrap());
+        }
+        if let Some(handle) = any.downcast_mut::<Option<HandleInput>>() {
+            return Self::Rust(handle.take().unwrap().0);
         }
         Self::Rust(RustHandle::new(owned.unwrap()))
     }

@@ -2,6 +2,115 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use rustier_js_syntax::ParsedJsMacro;
 
+mod derive;
+
+/// Implements `rustier::ToJs` for a struct or enum.
+///
+/// # Example
+///
+/// ```
+/// use rustier::{JsCallError, JsEnv, JsValue, ToJs};
+///
+/// #[derive(ToJs)]
+/// #[js(case = "camelCase")]
+/// struct Cat {
+///     #[js(handle)]
+///     pet_name: String,
+///     #[js(rename = "_age")]
+///     age: u8,
+///     #[js(skip)]
+///     cached_weight: Option<f64>,
+/// }
+///
+/// fn cat(env: JsEnv) -> Result<JsValue, JsCallError> {
+///     // Produces { petName: <handle of rust value>, _age: 1 }
+///     Cat { pet_name: "Fluffy".into(), age: 1, cached_weight: None }.to_js(env)
+/// }
+/// ```
+///
+/// # Attributes
+///
+/// - `#[js(case = "camelCase")]` or `#[js(case = "snake_case")]`
+///
+///   On a struct or enum, write named fields and variants in the selected case.
+///   Without this attribute, keep their Rust names.
+///
+/// - `#[js(tag = "kind")]`
+///
+///   On an enum with data, write the variant name to `"kind"` instead of `"type"`.
+///
+/// - `#[js(rename = "name")]`
+///
+///   Write a named field or variant with this exact name, overriding `case`.
+///   Tuple fields cannot be renamed.
+///
+/// - `#[js(skip)]`
+///
+///   Omit this field.
+///
+/// - `#[js(handle)]`
+///
+///   Move this field value into js as handle of rust value. The field type must be `'static`.
+#[proc_macro_derive(ToJs, attributes(js))]
+pub fn derive_to_js(input: TokenStream) -> TokenStream {
+    derive::expand(syn::parse_macro_input!(input), derive::Direction::Write)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
+/// Implements `rustier::FromJs` for a struct or enum.
+///
+/// # Example
+///
+/// ```
+/// use rustier::{FromJs, JsCallError, JsValue};
+///
+/// #[derive(FromJs)]
+/// #[js(tag = "kind")]
+/// enum Batch<T> {
+///     Empty,
+///     #[js(rename = "one")]
+///     One(#[js(handle)] T),
+///     Many { items: Vec<T> },
+/// }
+///
+/// fn read_batch(value: JsValue) -> Result<Batch<u8>, JsCallError> {
+///     // { kind: "one", values: [<handle of 8>] } bcomes Batch::One(8)
+///     // { kind: "Many", items: [7, 8] } becomes Batch::Many { items: vec![7, 8] }.
+///     Batch::from_js(value)
+/// }
+/// ```
+///
+/// # Attributes
+///
+/// - `#[js(case = "camelCase")]` or `#[js(case = "snake_case")]`
+///
+///   On a struct or enum, match named fields and variants in the selected case.
+///   Without this attribute, match their Rust names.
+///
+/// - `#[js(tag = "kind")]`
+///
+///   On an enum with data, read the variant name from `"kind"` instead of `"type"`.
+///
+/// - `#[js(rename = "name")]`
+///
+///   Match a named field or variant by this exact name, overriding `case`.
+///
+/// - `#[js(skip)]`
+///
+///   Initialize this field with `Default::default()` instead of reading a property
+///   or array element. The field type needs to implement `Default`.
+///
+/// - `#[js(handle)]`
+///
+///   Read this field value from a handle of rust value. The field type must be `'static`.
+#[proc_macro_derive(FromJs, attributes(js))]
+pub fn derive_from_js(input: TokenStream) -> TokenStream {
+    derive::expand(syn::parse_macro_input!(input), derive::Direction::Read)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
 /// Expands a deferred call using the runtime crate supplied by `js!`.
 #[doc(hidden)]
 #[proc_macro]

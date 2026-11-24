@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub use crate::transport::JsValueType;
+pub use crate::{FromJs, ToJs};
 
 /// A non-owning handle to a JavaScript environment.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]

@@ -1,11 +1,16 @@
+#![feature(min_specialization)]
+
+pub mod convert;
 pub mod errors;
 pub mod js;
 pub mod js_call;
 pub mod rust_handles;
 pub mod transport;
 
+pub use convert::{FromJs, ToJs};
 pub use js::{JsEnv, JsValue, RsValueHandle};
 pub use js_call::{JsCallError, JsMacro};
+pub use rustier_js_proc::{FromJs, ToJs};
 
 #[doc(hidden)]
 pub use rustier_js_proc::__expand_js;

@@ -10,6 +10,12 @@ repository = "https://github.com/helporme/rustier"
 proc-macro = true
 
 [dependencies]
+heck = "0.5"
+proc-macro-crate = "3"
 proc-macro2 = "1"
 rustier_js_syntax = { path = "../js-syntax", version = "=0.0.2" }
 quote = "1"
+syn = { version = "2", features = ["visit"] }
+
+[dev-dependencies]
+rustier = { path = "../rustier" }
