@@ -95,7 +95,7 @@ impl<'db> RsMacro<'db> {
                 frag!(
                     fn ~{name}(__rustier_env: ::rustier_runtime::JsEnv) ~{"{"}@
                     #[allow(unused_imports)]@
-                    use ::rustier::{{JsCallError, JsEnv, JsMacro, JsValue, JsValueType}};@
+                    use ::rustier::{{JsCallError, JsEnv, JsMacro, JsValue, JsValueType, RsValueHandle}};@
                     #[allow(unused_imports)]@
                     use ::rustier_js_proc::__js_in_rs as js;@
                     let __rustier_snippet = |

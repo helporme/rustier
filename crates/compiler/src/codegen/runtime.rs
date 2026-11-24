@@ -37,6 +37,8 @@ impl<'db> Runtime<'db> {
             if self.uses_rust_handles(db) {
                 self.render_runtime_handles_preamble_js(db, backend)
                     .apply(p);
+            } else {
+                frag!(const __rustier_has_handle = () => false;@).apply(p);
             }
             self.render_js_imports(db, backend, &imports).apply(p);
             for macro_ in self
@@ -336,7 +338,7 @@ impl<'db> RsMacro<'db> {
                 let body = frag!(
                     let __rustier_env = ::rustier_runtime::JsEnv::from({env});@
                     #[allow(unused_imports)]@
-                    use ::rustier::{{JsCallError, JsEnv, JsMacro, JsValue, JsValueType}};@
+                    use ::rustier::{{JsCallError, JsEnv, JsMacro, JsValue, JsValueType, RsValueHandle}};@
                     #[allow(unused_imports)]@
                     use ::rustier_js_proc::__js_in_rs as js;@
                     {conversions}@
@@ -372,7 +374,7 @@ impl<'db> RsMacro<'db> {
                             doubles(frag!({"Rustier input "}{index}{": expected Rust handle"}));
 
                         frag!(
-                            if (!__rustier_handles.has({argument})) {{
+                            if (!__rustier_has_handle({argument})) {{
                                 throw new TypeError({message});@
                             }}@
                         )

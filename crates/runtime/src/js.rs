@@ -1,6 +1,11 @@
 //! JavaScript environments and values.
 
-use crate::transport::{JsEnvHandle, JsValueHandle};
+use std::marker::PhantomData;
+
+use crate::{
+    rust_handles::{HandleMut, HandleRef, RustHandle},
+    transport::{JsEnvHandle, JsValueHandle},
+};
 
 pub use crate::transport::JsValueType;
 
@@ -70,6 +75,33 @@ impl JsValue {
     /// The environment this value belongs to.
     pub fn env(&self) -> JsEnv {
         self.handle.env().into()
+    }
+
+    /// Returns a typed owner of a Rustier handle from this bridge.
+    /// A move or a conflicting borrow can still prevent access to its value.
+    pub fn as_rust_handle<T: 'static>(&self) -> Option<RsValueHandle<T>> {
+        let address = crate::js!(
+            const value = @{self.clone()};
+            if (__rustier_has_handle(value)) {
+                return value[" __UNSAFE_ptr"];
+            }
+        )
+        .at(self.env())
+        .ok()?
+        .as_usize()?;
+
+        // Only this bridge's branded objects can return an address. Their pointer
+        // is immutable, and `self` roots the JS owner until we acquire our own Rc.
+        let handle = unsafe { RustHandle::clone_from_raw(address) };
+        handle.is::<T>().then_some(RsValueHandle {
+            handle,
+            marker: PhantomData,
+        })
+    }
+
+    /// Whether this is a Rustier handle created for `T`, even if `T` has been moved.
+    pub fn is_rust_handle<T: 'static>(&self) -> bool {
+        self.as_rust_handle::<T>().is_some()
     }
 
     /// The type of this value without converting it.
@@ -165,5 +197,28 @@ impl From<JsValueHandle> for JsValue {
 impl From<JsValue> for JsValueHandle {
     fn from(value: JsValue) -> Self {
         value.handle
+    }
+}
+
+/// A typed owner of a Rust value shared with JavaScript.
+pub struct RsValueHandle<T> {
+    handle: RustHandle,
+    marker: PhantomData<T>,
+}
+
+impl<T: 'static> RsValueHandle<T> {
+    /// Borrows the value unless it was moved or is mutably borrowed.
+    pub fn borrow(&self) -> Option<HandleRef<'_, T>> {
+        self.handle.borrow().ok()
+    }
+
+    /// Borrows the value exclusively unless it was moved or is already borrowed.
+    pub fn borrow_mut(&self) -> Option<HandleMut<'_, T>> {
+        self.handle.borrow_mut().ok()
+    }
+
+    /// Moves the value out once, provided there are no outstanding borrows.
+    pub fn take(&self) -> Option<T> {
+        self.handle.take().ok()
     }
 }

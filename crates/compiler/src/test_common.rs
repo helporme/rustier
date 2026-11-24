@@ -12,6 +12,7 @@ const RUNTIME: &str = r#"
     pub struct JsCallError;
     pub trait JsMacro {}
     pub enum JsValueType {}
+    pub struct RsValueHandle<T>(T);
     #[macro_export]
     macro_rules! __js_in_rs { () => { () }; }
     pub mod js {

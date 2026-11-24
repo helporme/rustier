@@ -4,7 +4,7 @@ pub mod js_call;
 pub mod rust_handles;
 pub mod transport;
 
-pub use js::{JsEnv, JsValue};
+pub use js::{JsEnv, JsValue, RsValueHandle};
 pub use js_call::{JsCallError, JsMacro};
 
 #[doc(hidden)]

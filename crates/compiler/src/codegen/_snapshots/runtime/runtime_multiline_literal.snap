@@ -22,7 +22,9 @@ pub unsafe extern "C" fn __rustier_7a5f35563d2dc2e6452618644a53d75fe47cc84f6ab85
     let __rustier_output = {
         let __rustier_env = ::rustier_runtime::JsEnv::from(__rustier_env_handle);
         #[allow(unused_imports)]
-        use ::rustier::{JsCallError, JsEnv, JsMacro, JsValue, JsValueType};
+        use ::rustier::{
+            JsCallError, JsEnv, JsMacro, JsValue, JsValueType, RsValueHandle,
+        };
         #[allow(unused_imports)]
         use ::rustier_js_proc::__js_in_rs as js;
         let __rustier_output = (|| -> () {
