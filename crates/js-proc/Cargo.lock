@@ -642,14 +642,14 @@ checksum = "6b1e7f9a428571be2dc5bc0505c13fb6bf936822b894ec87abf8a08a4e51742d"
 
 [[package]]
 name = "rustier"
-version = "0.0.2"
+version = "0.1.1"
 dependencies = [
  "rustier_runtime",
 ]
 
 [[package]]
 name = "rustier_js_proc"
-version = "0.0.2"
+version = "0.1.1"
 dependencies = [
  "heck",
  "proc-macro-crate",
@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "rustier_js_syntax"
-version = "0.0.2"
+version = "0.1.1"
 dependencies = [
  "blake3",
  "oxc_allocator",
@@ -675,7 +675,7 @@ dependencies = [
 
 [[package]]
 name = "rustier_runtime"
-version = "0.0.2"
+version = "0.1.1"
 dependencies = [
  "napi-sys",
  "rustier_js_proc",

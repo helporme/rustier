@@ -2140,7 +2140,7 @@ dependencies = [
 
 [[package]]
 name = "rustier_compiler"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "blake3",
  "insta",
@@ -2172,7 +2172,7 @@ dependencies = [
 
 [[package]]
 name = "rustier_js_syntax"
-version = "0.0.2"
+version = "0.1.1"
 dependencies = [
  "blake3",
  "oxc_allocator",
@@ -2185,7 +2185,7 @@ dependencies = [
 
 [[package]]
 name = "rustier_workspace"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "cargo-options",

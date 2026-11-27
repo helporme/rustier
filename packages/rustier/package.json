@@ -1,6 +1,6 @@
 {
   "name": "rustier",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Rustier plugins implemented using Rustier.",
   "license": "MIT",
   "repository": {
@@ -22,11 +22,12 @@
     "build/release": "tsdown",
     "test": "pnpm run build/dev && pnpm --dir ../../crates/server run build:dev && vitest run && pnpm --filter library-example run build",
     "check": "tsc --noEmit",
-    "prepublishOnly": "npm run build/release && node ./npm/publish.mjs"
+    "publish:bindings": "node ./npm/publish.mjs",
+    "prepublishOnly": "npm run build/release && npm run publish:bindings"
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1",
-    "rustier-bindings-unknown-unknown-unknown": "0.1.0"
+    "rustier-bindings-unknown-unknown-unknown": "0.1.1"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",

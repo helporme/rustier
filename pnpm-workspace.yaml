@@ -12,12 +12,12 @@ allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:
   - rustier@0.0.0-bootstrap || 0.1.0-bootstrap || 0.1.0-bootstrap.1
-  - rustier-bindings-darwin-arm64@0.1.0
-  - rustier-bindings-darwin-x64@0.1.0
-  - rustier-bindings-linux-arm64-gnu@0.1.0
-  - rustier-bindings-linux-arm64-musl@0.1.0
-  - rustier-bindings-linux-x64-gnu@0.1.0
-  - rustier-bindings-linux-x64-musl@0.1.0
-  - rustier-bindings-unknown-unknown-unknown@0.1.0
-  - rustier-bindings-win32-arm64-msvc@0.1.0
-  - rustier-bindings-win32-x64-msvc@0.1.0
+  - rustier-bindings-darwin-arm64@0.1.1
+  - rustier-bindings-darwin-x64@0.1.1
+  - rustier-bindings-linux-arm64-gnu@0.1.1
+  - rustier-bindings-linux-arm64-musl@0.1.1
+  - rustier-bindings-linux-x64-gnu@0.1.1
+  - rustier-bindings-linux-x64-musl@0.1.1
+  - rustier-bindings-unknown-unknown-unknown@0.1.1
+  - rustier-bindings-win32-arm64-msvc@0.1.1
+  - rustier-bindings-win32-x64-msvc@0.1.1

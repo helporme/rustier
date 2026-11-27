@@ -1,13 +1,13 @@
 [package]
 name = "rustier_workspace"
-version = "0.0.1"
+version = "0.1.1"
 edition = "2024"
 description = "Application-facing compiler workspace for Rustier."
 license = "MIT"
 repository = "https://github.com/helporme/rustier"
 
 [dependencies]
-rustier_compiler = { path = "../compiler", version = "0.0.1" }
+rustier_compiler = { path = "../compiler", version = "=0.1.1" }
 ra_ap_base_db = "=0.0.345"
 ra_ap_hir = "=0.0.345"
 ra_ap_hir_expand = "=0.0.345"

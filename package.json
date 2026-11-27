@@ -1,7 +1,9 @@
 {
   "name": "rustier-workspace",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
+    "release:bump": "python3 scripts/release-version.py",
     "build/dev": "pnpm --filter rustier run build/dev",
     "build/release": "pnpm --filter rustier run build/release",
     "test": "pnpm --filter rustier run test"

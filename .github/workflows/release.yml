@@ -1,0 +1,176 @@
+name: Release Rustier
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {} # Rehearse the build and packaging without publishing.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 scripts/release-version.py --check
+      - name: Verify public crates together
+        run: |
+          cp .github/release-crates.toml crates/Cargo.toml
+          cargo publish --workspace --manifest-path crates/Cargo.toml --allow-dirty --dry-run
+
+  build:
+    # The pinned rustier-bootstrap compiler is darwin-arm64 only.
+    runs-on: macos-15
+    outputs:
+      dist-tag: ${{ steps.version.outputs.dist-tag }}
+      node-version: ${{ steps.node.outputs.node-version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        id: node
+        with:
+          node-version: '24'
+      - name: Check release version
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          version=$(node -p "require('./packages/rustier/package.json').version")
+          if [[ "$GITHUB_EVENT_NAME" == release && "$RELEASE_TAG" != "v$version" ]]; then
+            echo "::error::Expected release tag v$version, got $RELEASE_TAG"
+            exit 1
+          fi
+          if [[ "$version" == *-* || "$PRERELEASE" == true ]]; then
+            echo "dist-tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "dist-tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12.10.1
+      - run: pnpm --filter rustier install --frozen-lockfile
+      - name: Install Rust targets and cross-linkers
+        run: |
+          # rustup honors rust-toolchain.toml (nightly with rust-src).
+          node --input-type=module -e "import { nativePlatforms } from './packages/rustier/src/targets.ts'; console.log(Object.keys(nativePlatforms).join('\n'))" |
+            xargs rustup target add
+          brew install cargo-zigbuild # also installs Zig
+          # macos-15 provides LLVM; xwin uses clang-cl and Rust's bundled LLD.
+          echo "$(brew --prefix llvm@18)/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/xwin"
+          "$RUNNER_TEMP/xwin/bin/pip" install cargo-xwin==0.23.1
+          echo "$RUNNER_TEMP/xwin/bin" >> "$GITHUB_PATH"
+      - run: pnpm --filter rustier run build/release
+      - name: Check packages and stage release
+        working-directory: packages/rustier
+        env:
+          npm_config_dry_run: 'true'
+          npm_config_tag: ${{ steps.version.outputs.dist-tag }}
+        run: |
+          # Exercise the generated publisher, including every native tarball's integrity.
+          npm run publish:bindings
+          npm publish --ignore-scripts --dry-run
+          tar -czf "$RUNNER_TEMP/release.tar.gz" package.json dist npm
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-release
+          path: ${{ runner.temp }}/release.tar.gz
+          if-no-files-found: error
+
+  publish-crates:
+    if: github.event_name == 'release'
+    needs: [runtime, build]
+    runs-on: ubuntu-latest
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: cp .github/release-crates.toml crates/Cargo.toml
+      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+        id: auth
+      - run: cargo publish --workspace --manifest-path crates/Cargo.toml --allow-dirty
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  consumer:
+    needs: [build, runtime, publish-crates]
+    if: >-
+      !cancelled() && needs.build.result == 'success' && needs.runtime.result == 'success' &&
+      (needs.publish-crates.result == 'success' || github.event_name == 'workflow_dispatch')
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ needs.build.outputs.node-version }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-release
+          path: packages/rustier
+      - name: Build and run the example against the staged npm packages
+        working-directory: packages/rustier
+        run: |
+          tar -xzf release.tar.gz
+          smoke="$RUNNER_TEMP/consumer"
+          mkdir -p "$smoke"
+          npm pack --ignore-scripts --pack-destination "$smoke" . ./npm/unknown-unknown-unknown ./npm/darwin-arm64
+          cp -R ../../examples/library-example/{src,tsconfig.json,tsdown.config.ts} ../../rust-toolchain.toml "$smoke/"
+          tsdown=$(node -p "require('./package.json').devDependencies.tsdown")
+          tsc=$(node -p "require('./package.json').devDependencies.typescript")
+          cd "$smoke"
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            # Rehearse an unpublished runtime; actual releases must use crates.io.
+            mkdir -p .cargo
+            manifest="$GITHUB_WORKSPACE/crates/Cargo.toml"
+            cp "$GITHUB_WORKSPACE/.github/release-crates.toml" "$manifest"
+            cargo metadata --no-deps --format-version 1 --manifest-path "$manifest" |
+              jq -r '"[patch.crates-io]", (.packages[] | "\(.name) = { path = \(.manifest_path | rtrimstr("/Cargo.toml") | @json) }")' > .cargo/config.toml
+          fi
+          echo '{"name":"release-smoke","private":true,"type":"module","exports":"./dist/index.mjs"}' > package.json
+          npm install --ignore-scripts --no-audit ./*.tgz "tsdown@$tsdown" "typescript@$tsc"
+          npm exec -- tsdown
+          node dist/index.mjs
+
+  publish-npm:
+    if: github.event_name == 'release'
+    needs: [build, consumer]
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Use the same npm pack implementation that generated the integrity hashes.
+          node-version: ${{ needs.build.outputs.node-version }}
+          package-manager-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-release
+      - name: Publish native packages, router, then plugin
+        env:
+          npm_config_tag: ${{ needs.build.outputs.dist-tag }}
+          npm_config_access: public
+        run: |
+          tar -xzf release.tar.gz
+          npm run publish:bindings
+          # Use the staged dist, not the local prepublishOnly hook that rebuilds it.
+          npm publish --ignore-scripts

@@ -1,0 +1,6 @@
+# Temporary publish workspace: these are the only crates needed from crates.io.
+# Cargo packages and verifies them together, then uploads in dependency order.
+[workspace]
+resolver = "3"
+members = ["js-syntax", "js-proc", "runtime", "rustier"]
+exclude = ["compiler", "server", "workspace"]

@@ -65,7 +65,7 @@ importers:
         specifier: ^3.3.1
         version: 3.3.1
       rustier-bindings-unknown-unknown-unknown:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:npm/unknown-unknown-unknown
     devDependencies:
       '@types/node':
@@ -108,28 +108,28 @@ importers:
   packages/rustier/npm/unknown-unknown-unknown:
     optionalDependencies:
       rustier-bindings-darwin-arm64:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../darwin-arm64
       rustier-bindings-darwin-x64:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../darwin-x64
       rustier-bindings-linux-arm64-gnu:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../linux-arm64-gnu
       rustier-bindings-linux-arm64-musl:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../linux-arm64-musl
       rustier-bindings-linux-x64-gnu:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../linux-x64-gnu
       rustier-bindings-linux-x64-musl:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../linux-x64-musl
       rustier-bindings-win32-arm64-msvc:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../win32-arm64-msvc
       rustier-bindings-win32-x64-msvc:
-        specifier: 0.1.0
+        specifier: 0.1.1
         version: link:../win32-x64-msvc
 
   packages/rustier/npm/win32-arm64-msvc: {}

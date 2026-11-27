@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'tsdown'
 import rustier from 'rustier-bootstrap/tsdown'
+import { nativePlatforms } from './src/targets.ts'
 
 export default defineConfig(({ env }) => {
   const localRuntime = env?.runtimeSource === 'local'
@@ -20,16 +21,7 @@ export default defineConfig(({ env }) => {
         return { code: readFileSync(path, 'utf8'), moduleType: 'text' }
       },
     }, rustier({
-      targets: localRuntime ? ['host'] : [
-        'aarch64-apple-darwin',
-        'x86_64-apple-darwin',
-        'x86_64-unknown-linux-gnu',
-        'aarch64-unknown-linux-gnu',
-        'x86_64-unknown-linux-musl',
-        'aarch64-unknown-linux-musl',
-        'x86_64-pc-windows-msvc',
-        'aarch64-pc-windows-msvc',
-      ],
+      targets: localRuntime ? ['host'] : Object.keys(nativePlatforms),
       distribution: localRuntime ? 'inline' : 'npm',
       concurrency: 1,
       crates: {
