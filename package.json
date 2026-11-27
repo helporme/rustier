@@ -1,6 +1,6 @@
 {
   "name": "rustier-workspace",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "release:bump": "python3 scripts/release-version.py",

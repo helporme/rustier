@@ -1,6 +1,6 @@
 [package]
 name = "rustier_js_proc"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Procedural macro expansion for Rustier JavaScript calls."
 license = "MIT"
@@ -13,7 +13,7 @@ proc-macro = true
 heck = "0.5"
 proc-macro-crate = "3"
 proc-macro2 = "1"
-rustier_js_syntax = { path = "../js-syntax", version = "=0.1.1" }
+rustier_js_syntax = { path = "../js-syntax", version = "=0.1.2" }
 quote = "1"
 syn = { version = "2", features = ["visit"] }
 
